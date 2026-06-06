@@ -1,0 +1,1182 @@
+\documentclass[lettersize,journal]{IEEEtran}
+\usepackage{amsmath,amsfonts}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{array}
+\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{bbm}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{cite}
+\usepackage{amssymb}
+\usepackage{array}
+\newtheorem{lemma}{Lemma}
+\newtheorem{assumption}{Assumption}
+\newtheorem{remark}{Remark}
+\newtheorem{theorem}{Theorem}
+\newtheorem{property}{Property}
+\newtheorem{proof}{Proof}
+
+\hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
+% updated with editorial comments 8/9/2021
+
+\begin{document}
+
+\title{Three Dimensional Resilient Cooperative Avoidance Guidance \\ under Denial-of-Service Attacks}
+
+\author{IEEE Publication Technology,~\IEEEmembership{Staff,~IEEE,}
+        % <-this % stops a space
+\thanks{This paper was produced by the IEEE Publication Technology Group. They are in Piscataway, NJ.}% <-this % stops a space
+\thanks{Manuscript received April 19, 2021; revised August 16, 2021.}}
+
+% The paper headers
+\markboth{IEEE TRANSACTIONS ON SYSTEMS, MAN, AND CYBERNETICS: SYSTEMS}%
+{Shell \MakeLowercase{\textit{et al.}}: A Sample Article Using IEEEtran.cls for IEEE Journals}
+
+%\IEEEpubid{0000--0000/00\$00.00~\copyright~2021 IEEE}
+% Remember, if you use this you must call \IEEEpubidadjcol in the second
+% column for its text to clear the IEEEpubid mark.
+
+\maketitle
+
+\begin{abstract}
+
+\end{abstract}
+
+\begin{IEEEkeywords}
+
+\end{IEEEkeywords}
+
+\section{Introduction}
+%协同制导
+In recent years, with the rapid development of anti-missile defense systems, traditional single-missile penetration is no longer cost-effective and struggles to meet mission demands in complex scenarios. Therefore, multi-missile cooperative engagement has become a key strategy for precision strikes. Through communication networks, multiple missiles can share information and synchronize their flight times. This enables simultaneous salvo attacks on high-value targets, which significantly increases the penetration probability and improves guidance accuracy.
+%这里可以引用两篇
+
+The cooperative guidance problem, aimed at achieving simultaneous interception, was initially addressed in \cite{jeon2006impact} by augmenting conventional proportional navigation with an impact-time feedback command. Building on this, hierarchical architectures were developed in \cite{shiyu2008cooperative} using centralized and distributed coordination algorithms. For 3D engagement scenarios, a spatial-temporal cooperative guidance strategy was developed in \cite{zhang2020finite} by employing finite-time consensus theory. To further enhance system robustness, a fixed-time cooperative guidance law was derived in \cite{chen2021three} utilizing a distributed sliding surface. Beyond basic synchronization, spatial constraints have been integrated into the framework. Specifically, coplanar and pursuit guidance commands were designed to satisfy impact angle constraints in \cite{wang2022impact}, and seeker field-of-view (FOV) constraints were tackled in \cite{dong2021three}. In \cite{yu2022three}, an adaptive distributed law was proposed by constructing a novel fast nonsingular terminal sliding mode surface. Moreover, an impact time consensus scheme without a pre-designated attack time was developed in \cite{yu2023impact} by utilizing a maximum consensus algorithm. Without relying on active speed control, the spatial-temporal cooperative problem under time-varying speeds was addressed in \cite{dong2023three} via a progressive design strategy. 
+
+Most existing cooperative guidance laws rely on ideal, continuous communication networks to formulate consensus commands \cite{chen2021three, zhang2020finite, dong2021three, wang2022impact, yu2022three, yu2023impact, dong2023three}. However, this assumption faces severe cyber and physical challenges in modern environments. In the cyber domain, networks are highly vulnerable to primarily classified into False Data Injection (FDI) \cite{7438916,9740500,11119720} and Denial-of-Service (DoS) attacks \cite{8444973, 2022An, 10551485}. FDI attacks inject deceptive data to prevent regular agents from reaching consensus, while DoS attacks jam channels to block critical data transmissions. Such malicious attacks disrupt information exchange, causing the consensus-based cooperative terms to fail and ultimately paralyzing the simultaneous attack. In the physical domain, spatial obstacles pose an additional dual threat. They not only force missiles to deviate from nominal trajectories for collision avoidance but also physically sever the line-of-sight (LOS) communication links, inevitably leading to the disconnection of the communication topology.
+%此处分别要列举几篇文献分别列举三篇（一共六篇
+
+To address cyber attacks, extensive research in multi-agent systems has focused on resilient control. For FDI attacks, existing methods primarily consist of fault identification and isolation techniques \cite{0Partial,tang2019linear} and Mean-Subsequence-Reduced (MSR) algorithms. MSR-type algorithms and their variants, such as weighted MSR (WMSR) \cite{leblanc2013resilient}, double-integrator position-based MSR (DP-MSR) \cite{fiore2019resilient}, and multi-hop WMSR (MW-MSR) \cite{yuan2025asynchronous}, are widely used to filter suspicious data and achieve resilient consensus. For DoS attacks, current research typically addresses random attacks modeled by Markov or Bernoulli-driven switching topologies \cite{11025995,ali2024fully}, or behavior-constrained attacks modeled by time sequences \cite{liu2022data, zhang2022resilient, gao2025resilient}. However, these studies commonly assume synchronous attacks, where all communication channels are attacked simultaneously under known system dynamics. This assumption is impractical for simulating complex real-world attack scenarios.
+
+%目前的场景较为简单，多解决的是单节点的恶意攻击问题   我的算法解决的是多通道dos异步攻击场景的问题
+Inspired by the aforementioned multi-agent resilient theories, recent studies have introduced resilient mechanisms into the cooperative guidance domain. Current strategies against cyber attacks primarily fall into two categories. The first category constructs reputation systems based on confidence and trust factors to counter FDI attacks \cite{10038503, 10506534, 10697934, 10834565}. Specifically, distributed observer-based strategies were proposed in \cite{10038503, 10506534} to evaluate node reliability and isolate compromised links. For maneuvering targets, these mechanisms were further enhanced by integrating prescribed performance functions \cite{10697934} and actor-critic neural networks \cite{10834565} to achieve accurate node isolation. The second category relies on local filtering and fault isolation mechanisms to reject abnormal information. For instance, local filtering algorithms were utilized in \cite{8303222, wang2020robust} to handle misbehaving interceptors, while a time-to-go sequence reduction method based on the MSR algorithm was proposed in \cite{10878455} to filter abnormal data under field-of-view constraints. However, it is noteworthy that most existing resilient cooperative guidance research is primarily limited to addressing single-node FDI attack problems.
+%其次考虑物理障碍，禁飞区，障碍物 8篇左右；单机避障，多机避障
+
+Regarding physical obstacle avoidance, existing methods for single-agent systems mainly include motion planning \cite{paden2016survey}, Hamilton–Jacobi reachability analysis \cite{bansal2017hamilton}, artificial potential fields (APFs) \cite{gu2019observer, hao2023uav}, and Control Barrier Functions (CBFs) \cite{peng2023design, peng2025safe}. Among these approaches, CBFs have attracted significant attention due to their capability to guarantee safety by enforcing the forward invariance of safe sets, and have been further extended to high-order CBFs (HO-CBFs) for systems with arbitrary relative degrees \cite{tan2021high, xiao2021high}. Recent studies have extended obstacle avoidance to cooperative scenarios, employing techniques such as transformer-based planning \cite{li2024cooperative} and integrated spatio-temporal consensus methods \cite{zhao2025spatial} to mitigate the excessive terminal commands caused by conventional segmented designs. However, these cooperative strategies typically rely on the assumption of ideal communication networks. In realistic combat environments, obstacles not only need to be safely avoided, but can also induce LOS occlusions, resulting in intermittent communication interruptions.
+
+In summary, modern combat environments expose cooperative missile systems to complex, tightly coupled cyber-physical threats. However, existing research is quite limited, typically addressing these challenges independently. On the one hand, current resilient guidance strategies generally only consider single-node FDI attacks and fail to account for multi-channel asynchronous DoS attacks \cite{10038503, 10506534, 10697934, 10834565, 8303222, wang2020robust, 10878455}. On the other hand, existing cooperative obstacle avoidance methods almost exclusively rely on the assumption of perfect communication \cite{li2024cooperative, zhao2025spatial}. However, few studies have considered the realistic scenario where these two threats occur simultaneously. Specifically, multi-channel asynchronous DoS attacks disrupt the network, while evasive maneuvers cause physical LOS occlusions that further break the communication links. To the best of our knowledge, no existing study on cooperative guidance has addressed the problem of multi-channel asynchronous DoS attacks within a physical obstacle avoidance scenario.
+
+Taking account of the above technical challenges,
+%此处说明我们文章的创新点
+
+\setcounter{figure}{0}
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.4\textwidth]{Fig/3D_cooperative.pdf}
+	\caption{Three-dimensional cooperative guidance geometry.}
+	\label{fig:3D_cooperative}
+\end{figure}
+
+
+
+
+\section{Problem Statement and Preliminaries}
+\subsection{Three-Dimensional Cooperative Guidance Model}
+
+Consider a three-dimensional cooperative engagement scenario wherein a group of $M$ missiles, denoted by the set $\mathcal{M}=\{1, ..., M\}$, intercepts a stationary target. The engagement geometry is defined within three reference frames: the inertial frame $X_I Y_I Z_I$, the velocity frame $X_V Y_V Z_V$, and the LOS frame $X_L Y_L Z_L$. For the $i$-th missile, the velocity magnitude $V_i$ is assumed constant. The control inputs consist of lateral accelerations $a_{y,i}$ and $a_{z,i}$, applied along the $Y_V$ and $Z_V$ axes of the velocity frame, respectively, orthogonal to the velocity vector. The relative kinematics are characterized by the LOS range $R_i$ and the spatial orientation of the LOS vector, defined by the azimuth angle $\varphi_i$ and elevation angle $\vartheta_i$ in the inertial frame. The governing equations for the range rate and LOS angular rates are expressed as:
+\begin{equation}
+	\label{eq:dotr}
+	\dot{R}_i = -V_i \cos \theta_i \cos \phi_i
+\end{equation}
+\begin{equation}
+\label{eq:dotvartheta}
+	\dot{\vartheta}_i = -\frac{V_i}{R_i} \sin \theta_i
+\end{equation}
+\begin{equation}
+	\label{eq:dotvarphi}
+	\dot{\varphi}_i = -\frac{V_i}{R_i \cos \vartheta_i} \cos \theta_i \sin \phi_i
+\end{equation}
+where $\theta_i$ and $\phi_i$ denote the pitch and yaw leading angles in the LOS frame, describing the deviation of the velocity vector from the LOS vector. Taking the time derivative of the leading angles and accounting for the nonlinear coupling effects induced by the three-dimensional geometry, the dynamics for the pitch leading angle $\theta_i$ and yaw leading angle $\phi_i$ are derived as:
+\begin{flalign}
+	\label{eq:dottheta}
+	\dot{\theta}_i 
+	&= \frac{A_{z,i}}{V_i} + \frac{V_i}{R_i} \cos \theta_i \sin^2 \phi_i \tan \vartheta_i 
+	+ \frac{V_i}{R_i} \sin \theta_i \cos \phi_i &&
+\end{flalign}
+
+\begin{flalign}
+	\label{eq:dotphi}
+	\dot{\phi}_i 
+	&= \frac{A_{y,i}}{V_i \cos \theta_i} - \frac{V_i}{R_i} \sin \theta_i \sin \phi_i \cos \phi_i \tan \vartheta_i \notag\\
+	&\quad + \frac{V_i}{R_i \cos \theta_i} \sin^2 \theta_i \sin \phi_i 
+	+ \frac{V_i}{R_i} \cos \theta_i \sin \phi_i &&
+\end{flalign}
+The leading angle $\sigma_i$, representing the spatial angle between the velocity and LOS vectors, implies the geometric relationship below
+\begin{equation}
+	\label{sigma_i}
+	\cos \sigma_i = \cos \theta_i \cos \phi_i
+\end{equation}
+From \eqref{sigma_i}, one can obtain
+\begin{equation}
+	\begin{split}
+		\sin^2 \phi_i + \sin^2 \theta_i \cos^2 \phi_i&= \sin^2 \phi_i + (1 - \cos^2 \theta_i)\cos^2 \phi_i \\
+		&= 1 - \cos^2 \sigma_i = \sin^2 \sigma_i
+	\end{split}
+\end{equation}
+
+Taking the time derivative of \eqref{sigma_i} and combining it with \eqref{eq:dotvartheta}-\eqref{eq:dotphi},we have the following lead angle dynamics
+\begin{equation}
+	\label{eq:dotsigma}
+\dot{\sigma}_i = \frac{a_{y,i}\sin\phi_i}{V_i\sin\sigma_i} + \frac{a_{z,i}\sin\theta_i\cos\phi_i}{V_i\sin\sigma_i} + \frac{V_i\sin\sigma_i}{R_i}
+\end{equation}
+
+%%添加remark
+\subsection{Algebraic Graph Theory}
+The communication network among the $M$ missiles is modeled as an undirected graph $\mathcal{G}(\mathcal{M}, \mathcal{C})$, where $\mathcal{M}=\{1, ..., M\}$ represents the set of missile nodes, and $\mathcal{C} \subseteq \mathcal{M} \times \mathcal{M}$ represents the set of communication edges. An edge $(i, j) \in \mathcal{C}$ denotes that the $i$-th missile can exchange information with the $j$-th missile. For an undirected graph, the connection is bidirectional, satisfying $(i, j) \in \mathcal{C} \Leftrightarrow (j, i) \in \mathcal{C}$. The connectivity of the network is described by the adjacency matrix $\mathcal{A}=[a_{ij}] \in \mathbb{R}^{M \times M}$. The elements of $\mathcal{A}$ are defined based on the existence of communication links:
+\begin{equation}
+	a_{ij} =
+	\begin{cases}
+		1, & (j, i) \in \mathcal{C} \\
+		0, & \text{otherwise}
+	\end{cases}
+\end{equation}
+Self-loops are excluded, implying $a_{ii}=0$, and the matrix is symmetric ($a_{ij}=a_{ji}$). Accordingly, the Laplacian matrix $\mathcal{L}=[l_{ij}] \in \mathbb{R}^{M \times M}$ associated with the graph $\mathcal{G}$ is defined as:
+\begin{equation}
+	l_{ij} =
+	\begin{cases}
+		-a_{ij}, & i \neq j \\
+		\sum_{k=1}^{M} a_{ik}, & i = j
+	\end{cases}
+\end{equation}
+\begin{lemma}
+	Assuming the undirected graph $\mathcal{G}$ is connected, the Laplacian matrix $\mathcal{L}$ is symmetric and positive semi-definite. It satisfies the following properties:
+	\begin{enumerate}
+		\item $\mathcal{L}$ has a simple zero eigenvalue with the eigenvector $\mathbf{1}_M = [1, \dots, 1]^T$, while all other eigenvalues are real and positive		
+		\item For any state vector $\mathbf{x} = [x_1, \dots, x_M]^T$, the Laplacian quadratic form is expressed as
+		\begin{equation}
+			\mathbf{x}^T \mathcal{L} \mathbf{x} = \frac{1}{2} \sum_{i=1}^{M} \sum_{j=1}^{M} a_{ij} (x_i - x_j)^2
+		\end{equation}		
+		\item The algebraic connectivity, denoted by the minimum positive eigenvalue $\lambda_2(\mathcal{L})$, satisfies
+		\begin{equation}
+			\mathbf{x}^T \mathcal{L} \mathbf{x} \ge \lambda_2(\mathcal{L}) \mathbf{x}^T \mathbf{x}
+		\end{equation}
+		where a larger value of $\lambda_2(\mathcal{L})$ implies stronger network connectivity.
+	\end{enumerate}
+\end{lemma}
+
+\subsection{Distributed Asynchronous Denial-of-Service Attack}
+%%此处补充同步攻击参考文献
+
+Distinct from conventional centralized or synchronous attack models \cite{11025995,ali2024fully,liu2022data, zhang2022resilient, gao2025resilient} that assume simultaneous compromise across all communication channels, this study addresses a distributed, multi-channel asynchronous DoS attack framework. In this setting, adversaries independently target distinct communication links subject to heterogeneous temporal constraints. The framework of the multi-missile cooperative communication system under multi-channel DoS attacks is presented in Figs.~\ref{fig:missile_dos} and \ref{fig:dos}, where malicious attacks may target the channels within communication networks, thereby blocking the transmission of cooperative information. The specific assumptions regarding the duration and frequency of attacks on each channel are formulated as follows:
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.35\textwidth]{Fig/missle_dos.pdf}
+	\caption{Missile Cooperative Communication Framework under Multi-channel DoS Attacks.}
+	\label{fig:missile_dos}
+\end{figure}
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.5\textwidth]{Fig/DOS.pdf}
+	\caption{Multi-channel asynchronous DoS attacks.}
+	\label{fig:dos}
+\end{figure}
+\begin{assumption}[DoS Duration]
+	\label{ass:duration}
+	For each communication channel $(i, j) \in {\mathcal{C}}$, there exist positive scalars $\zeta_{ij} \ge 0$ and $\mu_{ij} \in (0, 1)$ such that the total duration of attacks over any time interval $[t_0, t)$ satisfies:
+	\begin{equation}
+		|D_{(i,j)}(t_{0},t)| \le \zeta_{ij} + \mu_{ij}(t-t_{0})
+	\end{equation}
+	where $D_{(i,j)}(t_{0},t)$ denotes the union of the attack intervals on channel $(i, j)$ during $[t_0, t)$. The parameter $\mu_{ij}$ represents the attack intensity, indicating that the attacks can block at most $100 \mu_{ij} \%$ of the communication time on average. The scalar $\zeta_{ij}$ characterizes the attack diversity, bounding the initial capability of the adversary to sustain a continuous attack.
+\end{assumption}
+
+\begin{assumption}[DoS Frequency]
+	\label{ass:frequency}
+	For each communication channel $(i, j) \in {\mathcal{C}}$, there exist positive scalars $\kappa_{ij} \ge 0$ and $\nu_{ij} > 0$ such that the number of off-to-on attack transitions, denoted by $F_{(i,j)}(t_0, t)$, satisfies the following constraint over any time interval $[t_0, t)$:
+	\begin{equation}
+		F_{(i,j)}(t_0, t) \le \kappa_{ij} + \frac{t - t_0}{\nu_{ij}}
+	\end{equation}
+	where $\nu_{ij}$ serves as the average dwell-time of the adversary, restricting the frequency at which attacks can be initiated. The parameter $\kappa_{ij}$ represents the maximum allowable burstiness, permitting a finite number of rapid switching actions within a short period.
+\end{assumption}
+
+To describe the collective state of the network under asynchronous attacks, a time-varying attack set $\Psi(t)$ is defined as the collection of channels currently compromised:
+\begin{equation}
+	\Psi(t) = \left\{ (i,j) \in {\mathcal{C}} \mid t \in D_{(i,j)}(0,\infty) \right\}
+\end{equation}
+This set evolves dynamically as different channels enter or exit their respective attack intervals asynchronously. 
+\vspace{1mm}
+\begin{remark}
+	Assumptions \ref{ass:duration} and \ref{ass:frequency} characterize the temporal properties of the distributed asynchronous DoS attacks investigated in this study. In contrast to conventional centralized attack models that impose uniform constraints across the entire network (i.e., $\mu_{ij} = \mu$ and $\nu_{ij} = \nu$ for all channels), the proposed framework accommodates heterogeneous attack parameters for distinct channels $(i, j)$. This formulation effectively captures realistic scenarios where diverse adversaries with varying capabilities target different communication links independently. Furthermore, Assumption \ref{ass:duration} imposes a bound on the adversary's energy or resources in terms of duration, thereby precluding permanent communication denial. Concurrently, Assumption \ref{ass:frequency} restricts the switching frequency of the attack signal, preventing the occurrence of Zeno-like behaviors or high-frequency chattering. These constraints constitute standard prerequisites in resilient control literature to guarantee the solvability of the consensus or formation control problem.
+\end{remark}
+\vspace{1mm}
+\section{Cooperative Guidance Law Design}
+In this section, a cooperative guidance law is developed to enable multiple missiles to simultaneously intercept a stationary target. The proposed guidance command consists of a baseline navigation term and a cooperative bias term. The baseline term is responsible for regulating the LOS rates to ensure successful target interception, while the bias term is designed to adjust the time-to-go ($t_{go}$) that denotes the remaining time before hitting the target, so as to achieve simultaneous impact of multiple missiles on the target.
+\subsection{Baseline Three-Dimensional Proportional Navigation Guidance}
+For decades, the Proportional Navigation Guidance (PNG) law has been widely applied in various interception scenarios due to its implementation simplicity and high efficiency. To achieve the accurate interception of a stationary target, the classical 3D PNG is adopted as the baseline guidance law. The fundamental objective of PNG is to nullify the rotation rate of the LOS vector in the inertial space. The baseline acceleration command vector is initially formulated as
+\begin{equation}
+	\label{eq:PNG_vector}
+	\boldsymbol{A}_i^{{\rm{PNG}}} = N {\boldsymbol{\Omega} _i} \times {\mathbf{V}_i}
+\end{equation}
+
+According to the coordinate transformation relationships and the definition of the velocity frame, the baseline PNG acceleration is resolved into two scalar components along the $M_i Y_V$ and $M_i Z_V$ axes of the velocity frame, which are explicitly expressed as
+\begin{equation}
+	\label{eq:PNG_scalar}
+	\begin{cases}
+		A_{y,i}^{\rm{PNG}} = - \dfrac{N V_i^2}{R_i}\sin \phi_i \\
+		A_{z,i}^{\rm{PNG}} = - \dfrac{N V_i^2}{R_i}\sin \theta_i \cos \phi_i
+	\end{cases}
+\end{equation}
+where $N$ is the navigation ratio, $V_i$ is the missile velocity magnitude, and $R_i$ is the relative range. The angles $\phi_i$ and $\theta_i$ represent the yaw and pitch lead angles in the LOS frame, respectively, which can be measured by the onboard seeker.
+	
+Furthermore, accurate time-to-go estimation is crucial for cooperative engagement. Unlike the simple straight-line approximation (i.e., $R_i/V_i$), the time-to-go $t_{go,i}$ for the 3D PNG is estimated by:
+\begin{equation}
+	\label{eq:tgo_estimate}
+	t_{go,i} = \frac{{{R_i}}}{{{V_i}}}\left[ {1 + \frac{{{{\sin }^2}{\sigma _i}}}{{2(2N - 1)}}} \right]
+\end{equation}
+This formulation provides a higher-order approximation valid for small lead angles, serving as the basis for the subsequent cooperative bias term design.
+\subsection{Cooperative Guidance Law Formulation}
+To achieve simultaneous interception, the guidance command $\mathbf{a}_i$ is formulated as an augmented PNG law, comprising a baseline PNG term and a cooperative bias term, expressed as
+\begin{equation}
+	\label{eq:total_guidance}
+	\boldsymbol{A}_i = \boldsymbol{A}_i^{{\mathrm{PNG}}} + \boldsymbol{A}_i^{{\mathrm{BT}}}
+\end{equation}
+where $\mathbf{a}_i^{{\mathrm{BT}}}$ represents the bias term designed to synchronize the impact times of the missile swarm. To ensure the engagement remains within the original interception plane established by the PNG, the bias term is resolved into azimuth and elevation components within the velocity frame. Consequently, the components of $\mathbf{a}_i^{{\mathrm{BT}}}$ along the $M_i Y_V$ and $M_i Z_V$ axes are derived as
+\begin{equation}
+	\label{eq:bias_components}
+	\begin{cases}
+		A_{y,i}^{{\mathrm{BT}}} = \dfrac{A_i^{{\mathrm{BT}}}}{\sin \sigma_i} \sin \phi_i \\
+		A_{z,i}^{{\mathrm{BT}}} = \dfrac{A_i^{{\mathrm{BT}}}}{\sin \sigma_i} \sin \theta_i \cos \phi_i
+	\end{cases}
+\end{equation}
+where $A_i^{{\mathrm{BT}}}$ denotes the magnitude of the bias acceleration.
+
+For the $i$-th missile ($i=1, 2, \dots, M$), the estimated impact time $t_{f,i}$ is defined as
+\begin{equation}
+	\label{eq:tf}
+	t_{f,i} = t + t_{go,i}
+\end{equation}
+Differentiating \eqref{eq:tf} with respect to time, and utilizing the time-to-go estimation in \eqref{eq:tgo_estimate}, the time derivative of $t_{f,i}$ is obtained as
+\begin{equation}
+	\label{eq:dottf1}
+	\dot{t}_{f,i} = 1 + \dot{t}_{go,i} = 1 + \frac{\dot{R}_i}{V_i}\left[1 + \frac{\sin^2\sigma_i}{2(2N-1)}\right] + \frac{R_i\sin\sigma_i\cos\sigma_i\dot{\sigma}_i}{(2N-1)V_i}
+\end{equation}    
+Substituting the lead angle dynamics \eqref{eq:dotsigma} into \eqref{eq:dottf1} yields
+\begin{equation}
+	\label{eq:dottf2}
+	\begin{split}
+		\dot{t}_{f, i} &= 1-\cos\sigma_{i}\left[1+\frac{\sin ^{2}\sigma_{i}}{2(2N-1)}\right]+\frac{\cos\sigma_{i}\sin ^{2}\sigma_{i}}{2 N-1}\\
+		&\quad +\frac{R_{i}\cos\sigma_{i}}{(2 N-1)V_{i}^{2}}\left(a_{y, i}\sin\phi_{i}+a_{z, i}\sin\theta_{i}\cos\phi_{i}\right)
+	\end{split}
+\end{equation}
+Furthermore, by substituting the total guidance command \eqref{eq:total_guidance} and the bias components \eqref{eq:bias_components} into \eqref{eq:dottf2}, the dynamic equation simplifies to
+\begin{equation}
+	\begin{split}
+		\dot{t}_{f, i} &= 1-\cos\sigma_{i}\left[1+\frac{\sin ^{2}\sigma_{i}}{2(2N-1)}\right]-\frac{(N-1)\cos\sigma_{i}\sin ^{2}\sigma_{i}}{2N-1}\\
+		&\quad +\frac{R_{i}\cos\sigma_{i}\sin\sigma_{i}}{(2N-1)V_{i}^{2}}A_{i}^{\mathrm{BT}}
+	\end{split}
+\end{equation}
+In the terminal guidance phase, the leading angle $\sigma_i$ is assumed to be small. Utilizing the small-angle approximations $\cos \sigma_i \approx 1 - \sigma_i^2/2$ and $\sin \sigma_i \approx \sigma_i$, and neglecting higher-order terms, the time derivative of $t_{f,i}$ is finally approximated as
+\begin{equation}
+	\label{eq:dottfabt}
+	\dot{t}_{f, i} = \frac{R_{i}\sin\sigma_{i}}{(2 N-1)V_{i}^{2}}a_{i}^{\mathrm{BT}}
+\end{equation}
+The objective of the cooperative guidance is to achieve consensus on the times-to-go for all missiles, which is equivalent to driving the relative time-to-go errors to zero. Based on the communication topology, the local cooperative error for the $i$-th missile, denoted as $e_i$, is defined as
+\begin{equation}
+	\label{eq:consensus_error}
+	e_i = \sum_{j=1}^{M} a_{ij}(t_{go,i} - t_{go,j})
+\end{equation}
+where $a_{ij}$ represents the elements of the adjacency matrix.
+
+Let $\mathbf{E}=[\varepsilon_{1},\ldots,\varepsilon_{M}]^{T}$ and $\boldsymbol{T}_{go}=[t_{go,1},\ldots,t_{go,M}]^{T}$. Then, \eqref{eq:consensus_error} can be rewritten as
+\begin{equation}
+	\mathbf{E}=\mathcal{L}\cdot\boldsymbol{T}_{go}
+\end{equation}
+According to Lemma 1, the condition $\mathbf{E}=\mathbf{0}$ implies that $t_{go,1}=t_{go,2}=\cdots=t_{go,M}$. Consequently, the control objective is to drive the local synchronization errors to zero, i.e., $e_{i}=0$ for all $i\in\mathcal{M}$. To achieve fixed-time convergence of the relative time-to-go errors, the cooperative bias term $a_{i}^{\mathrm{BT}}$ is designed as follows:
+\begin{equation}
+	\label{eq:bias_term_design}
+	a_i^{{\mathrm{BT}}} = - \frac{(2N-1)V_i^2}{R_i t_{go,i} \sin \sigma_i} \Upsilon(\bar{\sigma}_i) \left( \alpha \lceil e_i \rfloor^p + \beta \lceil e_i \rfloor^q \right)
+\end{equation}
+where $\Upsilon(\bar{\sigma}_i)$ is an auxiliary function introduced specifically for singularity avoidance. It is defined as:
+\begin{equation}
+	\label{eq:Upsilon_def}
+	\Upsilon (\bar{\sigma}_i ) = \left\{ {\begin{array}{*{20}{l}}
+			{1 - \cos \left( {\frac{\pi }{2}|{{\bar \sigma }_i}{|^n}} \right), \quad - 1 \le \bar{\sigma}_i \le 1}\\
+			{1,\quad {\mathrm{otherwise}}}
+	\end{array}} \right.
+\end{equation}
+Here, $\bar{\sigma}_i = \sigma_i / \sigma_m$ denotes the normalized lead angle, where $\sigma_m$ represents the threshold constant for singularity avoidance, and $n \ge 1$ is a tunable design parameter.
+
+Substituting the bias term \eqref{eq:bias_term_design} and its vector components \eqref{eq:bias_components} into the total guidance formulation \eqref{eq:total_guidance}, the final expression for the proposed distributed 3D nonsingular cooperative guidance law is obtained as:
+\begin{equation}
+	\label{eq:final_guidance_law}
+	\begin{aligned}
+		\boldsymbol{A}^{\mathrm{BT}}_i
+		= & \left[ - \frac{N V_i^2}{R_i} \sin \sigma_i \right. \\
+		& \left. - \frac{(2N-1)V_i^2 \Upsilon(\bar{\sigma}_i)}
+		{R_i t_{go,i} \sin \sigma_i}
+		\left( \alpha \lceil e_i \rfloor^p
+		+ \beta \lceil e_i \rfloor^q \right)
+		\right] \mathbf{e}_{a,i}
+	\end{aligned}
+\end{equation}
+where $\mathbf{e}_{a,i} = [0, \sin\phi_i/\sin\sigma_i, \sin\theta_i\cos\phi_i/\sin\sigma_i]^T$ is the unit direction vector of the guidance command defined in the velocity frame.
+\vspace{1mm}
+\begin{remark}
+	The singularity issue inherent in the bias term when $\sigma_i \to 0$ is effectively resolved by the introduction of $\Upsilon(\bar{\sigma}_i)$. As the lead angle $\sigma_i$ approaches zero, the denominator term $\sin \sigma_i$ approaches zero linearly (i.e., $\sin \sigma_i \approx \sigma_i$). However, based on the definition in Eq. \eqref{eq:Upsilon_def} and using the Taylor series expansion $1-\cos(x) \approx x^2/2$, the numerator behaves as $\Upsilon(\bar{\sigma}_i) \propto (\bar{\sigma}_i^n)^2 = \bar{\sigma}_i^{2n}$. Consequently, the ratio $\Upsilon(\bar{\sigma}_i)/\sin \sigma_i$ scales as $\mathcal{O}(\sigma_i^{2n-1})$. Since $n \ge 1$, this ratio approaches zero as $\sigma_i \to 0$, ensuring that the guidance command remains bounded and continuous throughout the engagement.
+\end{remark}
+\vspace{1mm}
+\section{Distributed Prescribed-Time Observer Design}
+In this section, a distributed prescribed-time global observer is developed under DoS attack scenarios to address the issue of asynchronous communication interruptions. The proposed observer ensures that each missile can obtain an unbiased estimation of the global swarm status within a pre-specified time, even under constrained communication reliability.
+
+First, let $\mathbf{x}^i = [R^i, V^i, \theta^i, \phi^i, \vartheta^i, \varphi^i]^\top \in \mathbb{R}^6$ denote the state vector of the $i$-th missile. Based on the kinematic relationships in \eqref{eq:dotr}-\eqref{eq:dotphi} and the distributed cooperative guidance law formulated in \eqref{eq:final_guidance_law}, the closed-loop dynamics of the $i$-th missile can be expressed in the following compact form
+\begin{equation}
+	\dot{\mathbf{x}}^i(t) = \mathbf{A}\mathbf{x}^i(t) + \mathbf{B}f(\mathbf{x}^i(t)) + \mathbf{C}\gamma(\bar{\mathbf{x}}^i(t))
+\end{equation}
+where $\bar{\mathbf{x}}^i(t) = \text{col}(\mathbf{x}^i(t), \mathbf{x}^{i_2}(t), \dots, \mathbf{x}^{i_k}(t))$ represents the augmented state vector consisting of the $i$-th missile's own state and those of its neighboring missiles within the communication topology. 
+
+To achieve an accurate estimation of the global swarm states under communication constraints, a distributed global state observer is constructed for each missile as follows
+\begin{equation}
+	\label{eq:observer_structure}
+	\begin{aligned}
+		\dot{\mathbf{z}}^i(t) = & \mathbf{A}\mathbf{z}^i(t) + \mathbf{B}f(\mathbf{z}^i(t)) + \mathbf{C}\gamma(\mathbf{z}^i(t)) \\
+		& - [\kappa(t)\mu(t)]^{1+m} \sum_{j=1}^N a_{ij} [\mathbf{z}^i(t) - \mathbf{z}^j(t)]
+	\end{aligned}
+\end{equation}
+where $\mathbf{z}^i(t) \in \mathbb{R}^{6 \times M}$ denotes the estimated global state vector maintained by the $i$-th missile, which encompasses the states of all $M$ missiles in the swarm. The terms $\mu(t)$ and $\kappa(t)$ represent the time-varying gain functions designed to ensure convergence despite communication uncertainties. Specifically, $\mu(t)$ is the prescribed-time gain function defined as
+\begin{equation}
+	\mu(t) = \frac{T}{T + t_0 - t}
+\end{equation}
+where $T$ is the pre-specified convergence time. Furthermore, $\kappa(t)$ represents the communication-adaptive gain function, which is formulated as
+\begin{equation}
+	\kappa(t) = \frac{\kappa_1}{T_{safe} - \sum t_c(t_0, t)}
+\end{equation}
+where $\kappa_1$ is a positive design constant, $\sum t_c(t_0, t)$ represents the cumulative duration of effective network connectivity since the initial time $t_0$, and $T_{safe}$ denotes the safe communication duration, which as detailed below.
+
+Based on Assumptions 1 and 2, the communication topology is subjected to DoS attacks characterized by specific duration and frequency constraints. The probability $P_c(T)$ that the graph $\mathcal{G}$ remains connected within the interval $T$ is defined via the following reliability polynomial:
+\begin{equation}
+	P_c(T) = \sum_{k=0}^{\mathcal{E}} F(k) \cdot (1-p)^k \cdot p^{\mathcal{E}-k}
+\end{equation}
+where $\mathcal{E}$ denotes the total number of edges in the communication graph. $F(k)$ represents the number of spanning subgraphs that remain connected when exactly $k$ edges are preserved. The edge communication probability $p \leq ({\zeta + \mu(T-t_0)})/{T}$ is determined by the DoS attack intensity and diversity constraints defined in \eqref{ass:duration}. Consequently, the safe communication time is evaluated as $T_{safe} = T \cdot P_c(T)$.
+
+
+\begin{assumption}
+	\label{ass:Lipschitz}
+	The functions $f$ and $\gamma$ in \eqref{eq:observer_structure} are assumed to be globally Lipschitz continuous, i.e., there exist constants $\gamma_f, \gamma_\gamma \in \mathbb{R}_{ \ge 0}$ such that for all $x, z, \bar{x}, \bar{z}$, it holds that
+	\begin{equation}
+		\| f(x) - f(z) \| \le \gamma_f \| x - z \|,\| \gamma(\bar{x}) - \gamma(\bar{z}) \| \le \gamma_\gamma \| \bar{x} - \bar{z} \|
+	\end{equation}
+	where .
+\end{assumption}
+
+To evaluate the performance of the proposed distributed observer under multi-channel DoS attacks, the observation error for the $i$-th missile is defined as $e^i(t) = \mathbf{x}(t) - \mathbf{z}^i(t)$ , where $\mathbf{x} = [\mathbf{x}^1, \mathbf{x}^2, \dots, \mathbf{x}^M]^\top \in \mathbb{R}^{6M}$ represents the global true state vector of the missile swarm. Let $\mathbf{E}(t) = \text{col}(e^1, e^2, \dots, e^N) \in \mathbb{R}^{6M \times N}$ denote the global observation error. By differentiating the error vector with respect to time and substituting the observer structure defined in \eqref{eq:observer_structure}, the global error dynamics are derived as follows
+\begin{equation}
+	\label{E}
+	\dot{\mathbf{E}}(t) = \bar{A}\mathbf{E}(t) + \bar{B}\Delta f(t) + \bar{C}\Delta \gamma(t) - [\kappa(t)\mu(t)]^{1+m} (\mathcal{L} \otimes I_n)\mathbf{E}(t) 
+\end{equation}
+where the augmented system matrices are defined as $\bar{A} = I_N \otimes A$, $\bar{B} = I_N \otimes B$, and $\bar{C} = I_N \otimes C$. The non-linear error terms are given by $\Delta f(t) = \text{col}(f(\mathbf{x}) - f(\mathbf{z}^1), f(\mathbf{x}) - f(\mathbf{z}^2), \dots, f(\mathbf{x}) - f(\mathbf{z}^N))$ and $\Delta \gamma(t) = \text{col}(\gamma(\mathbf{x}) - \gamma({\mathbf{z}}^1), \gamma(\mathbf{x}) - \gamma({\mathbf{z}}^2), \dots, \gamma(\mathbf{x}) - \gamma({\mathbf{z}}^N))$.
+
+\begin{theorem}
+	Consider the distributed global state observer designed in \eqref{eq:observer_structure} for a missile swarm subject to multi-channel DoS attacks. Under the condition that the total safe communication duration $T_{safe}$ satisfies the connectivity constraints, the observation error $E(t)$ is guaranteed to converge to zero within the pre-specified time $T$ (i.e., $\lim_{t \to t_0+T} E(t) = 0$), regardless of the DoS attack distribution.
+\end{theorem}
+
+\begin{proof}
+	Choose the Lyapunov candidate function as
+	\begin{equation}
+		\label{eq:VE}
+		V(E) = \frac{1}{2}\|E\|^2
+	\end{equation}
+	Taking the time derivative of $V(E)$ along the error dynamics yields
+	\begin{equation}
+		\label{eq:V_dot_expansion}
+		\begin{aligned}
+			\dot{V}(E) &= E^T \dot{E} = E^T \left[ \bar{A}E + \bar{B}\Delta f + \bar{C}\Delta \gamma \right] \\
+			&- [\kappa(t)\mu(t)]^{1+m} E^T (\mathcal{L} \otimes I_n) E
+		\end{aligned}
+	\end{equation}
+	where $m>0$. By invoking Assumption \ref{ass:Lipschitz} and utilizing standard matrix norm properties, we obtain
+	\begin{equation}
+		\label{eq:drift_bound}
+		E^T (\bar{A}E + \bar{B}\Delta f + \bar{C}\Delta \gamma) \le (\lambda_{\max}(\bar{A}) + k_f) \|E\|^2
+	\end{equation}
+	where $k_f = \sqrt{k_1 \gamma_f^2 + k_2 \gamma_\gamma^2}$. Consequently, the evolution of the Lyapunov function is analyzed under two distinct communication conditions:
+	
+	\textbf{Case 1: Connected Topology.} During the intervals where the communication network remains connected, the Laplacian matrix satisfies the algebraic connectivity property:
+	\begin{equation}
+		\label{eq:ET}
+		E^T (\mathcal{L} \otimes I_n) E \ge \lambda_2(\mathcal{L}) \|E\|^2
+	\end{equation}
+	Substituting \eqref{eq:ET} and \eqref{eq:drift_bound} into \eqref{eq:V_dot_expansion} leads to
+	\begin{equation}
+		\label{eq:VElambda}
+		\dot{V}(E) \le \left[ \lambda_{\max}(\bar{A}) + k_f - [\kappa(t)\mu(t)]^{1+m} \lambda_2(\mathcal{L}) \right] \|E\|^2
+	\end{equation}
+	Substituting \eqref{eq:VE} into \eqref{eq:VElambda}, we obtain
+	\begin{equation}
+		\label{eq:V_dot_connected}
+		\dot{V}(E) \le 2 \left[ \lambda_{\max}(\bar{A}) + k_f - [\kappa(t)\mu(t)]^{1+m} \lambda_2(\mathcal{L}) \right] V(E)
+	\end{equation}
+	
+	\textbf{Case 2: Disconnected Topology.} During the intervals where the communication topology is disconnected, the cooperative exchange term becomes ineffective. In this case, the error dynamics are governed solely by the system's inherent bounds:
+	\begin{equation}
+		\label{eq:V_dot_disconnected}
+		\dot{V}(E) \le 2 \left[ \lambda_{\max}(\bar{A}) + k_f \right] V(E)
+	\end{equation}
+	
+Given that the system matrix $\bar{A}$ is time-invariant and the nonlinear functions satisfy the global Lipschitz condition, it follows that the term $\lambda_{\max}(\bar{A}) + k_f$ is bounded. Furthermore, as $t \to t_0 + T$ or the cumulative connected time $\Sigma t_c \to T_{safe}$, the gain functions $\mu(t)$ and $\kappa(t)$ approach infinity. Consequently, there necessarily exists a critical time instant $t_* \in [t_0, t_0 + T)$ at which the observer gains sufficiently dominate the inherent system dynamics. This implies that for $t \ge t_*$, the following condition holds:
+\begin{equation}
+	\label{eq:delta}
+	[\kappa(t)\mu(t)]^{1+m} \lambda_2(\mathcal{L}) = \lambda_{\max}(\bar{A}) + k_f + \delta(t)
+\end{equation}
+where $\delta(t)$ represents a strictly positive auxiliary function. Therefore, regardless of the specific DoS attack distribution, provided the fundamental safety constraint $T_{safe} > 0$ is met, the critical time $t_*$ is guaranteed to exist and satisfies $t_* < t_0 + T$. Consequently, for $t \ge t_*$, substituting \eqref{eq:delta} into \eqref{eq:V_dot_connected} yields the differential inequality:
+\begin{equation}
+	\dot{V}(E) \le -2\delta(t) V(E)
+\end{equation}
+Rearranging and integrating both sides from $t_*$ to $t$ gives:
+\begin{equation}
+	\int_{t_*}^t \frac{\dot{V}(E)}{V(E)} d\tau \le -2 \int_{t_*}^t \delta(\tau) d\tau
+\end{equation}
+which simplifies to
+\begin{equation}
+	\ln \frac{V(t)}{V(t_*)} \le -2 \int_{t_*}^t \delta(\tau) d\tau
+\end{equation}
+Since the gains tend to infinity as the system approaches the prescribed convergence limits, the integral of the surplus term $\delta(\tau)$ diverges, which can be expressed as:
+\begin{equation}
+	\lim_{t \to t_0 + T} \int_{t_*}^t \delta(\tau) d\tau = \infty \quad \text{or} \quad \lim_{\Sigma t_c \to T_{safe}} \int_{t_*}^t \delta(\tau) d\tau = \infty
+\end{equation}
+This implies that $\ln V(t) \to -\infty$, and consequently:
+\begin{equation}
+	\lim_{t \to t_0 + T} V(t) = 0
+\end{equation}
+
+This confirms that the observation error $E(t)$ converges to zero within the fixed time $T$ or before the safe communication time expires. Since the safe communication time $T_{safe}$ is defined within the fixed interval $T$, the observer effectively achieves exact convergence within the prescribed time $T$. This completes the proof.
+\end{proof}
+
+\subsection{Stability Analysis of the Guidance Law}
+In this section, the stability of the proposed cooperative guidance law is analyzed based on the distributed observer designed above. In the presence of DoS attacks, communication links suffer from intermittent interruptions.
+ 
+Specifically, when the communication link between missile $i$ and neighbor $j$ is severed, the guidance law derived in \eqref{eq:final_guidance_law} must rely on the estimated time-to-go $\hat{t}_{go,j}$ provided by the distributed observer. Consequently, the actual control input implemented by the $i$-th missile utilizes the estimated local synchronization error $\hat{e}_i$ instead of the nominal error $e_i$ described in \eqref{eq:consensus_error}. 
+
+Let the estimation error of the time-to-go be defined as $\tilde{t}_{go,i} = t_{go,i} - \hat{t}_{go,i}$. The estimated synchronization error $\hat{e}_i$ used in the guidance law is expressed as:
+\begin{equation}
+	\label{eq:estimated_error}\hat{e}_i = \sum_{j=1}^{M} a_{ij} (\hat{t}_{go,i} - \hat{t}_{go,j})
+\end{equation}
+By substituting $\hat{t}_{go,i} = t_{go,i} - \tilde{t}_{go,i}$, the relationship between the observer-based error and the true consensus error can be decomposed as
+\begin{equation}
+	\label{eq:error_decomposition}
+	\hat{e}_i = \sum_{j=1}^{M} a_{ij} (t_{go,i} - t_{go,j}) - \sum_{j=1}^{M} a_{ij} (\tilde{t}_{go,i} - \tilde{t}_{go,j}) = e_i - \Delta_i
+\end{equation}
+where $\Delta_i = \sum_{j=1}^{M} a_{ij} (\tilde{t}_{go,i} - \tilde{t}_{go,j})$ represents the perturbation term induced by the observation errors.
+\begin{theorem}
+Consider the multi-missile cooperative engagement system under the proposed guidance law \eqref{eq:final_guidance_law} and the distributed observer \eqref{eq:observer_structure}. If the communication topology satisfies Assumptions 1 and 2, and the observer converges within the prescribed time $T_{obs}$, the cooperative guidance system is Input-to-State Stable (ISS) with respect to the observation error $\tilde{t}_{go}$. Furthermore, for $t > T_{obs}$, the relative time-to-go errors $e_i$ converge to zero in fixed time, ensuring simultaneous interception.
+\end{theorem}
+
+
+
+\textit{Proof:} Consider the Lyapunov function candidate characterizing the global synchronization error:
+\begin{equation}
+	\label{eq:Lyapunov_guidance}
+	V_f = \frac{1}{2} \boldsymbol{T}_{f}^T \mathcal{L} \boldsymbol{T}_{f} = \frac{1}{4} \sum_{i=1}^{M} \sum_{j=1}^{M} a_{ij} (t_{f,i} - t_{f,j})^2
+\end{equation}
+where $\boldsymbol{T}_{f}=[t_{f,1},...,t_{f,M}]^T$. According to Lemma 1, the matrix $\mathcal{L}$ is positive semidefinite, implying $V_f \ge 0$, and $V_f=0$ if and only if the impact times are synchronized (i.e., $t_{f,1}=t_{f,2} =\cdots=t_{f,M}$). The local synchronization error satisfies $\varepsilon_{f,i} = \frac{\partial V_f}{\partial t_{f,i}} = \sum_{j=1}^{M} a_{ij} (t_{go,i} - t_{go,j}) = \varepsilon_{i}$.
+
+Taking the time derivative of $V_f$ and substituting the guidance law dynamics from \eqref{eq:bias_term_design} and \eqref{eq:dottfabt}, we obtain:
+\begin{equation}
+	\label{eq:V_dot_substituted}
+	\dot{V}_f = - \sum_{i=1}^{M} \frac{\Upsilon(\bar{\sigma}_i)}{t_{go,i}} \varepsilon_{i} \left( \alpha \lceil \hat{\varepsilon}_i \rfloor^p + \beta \lceil \hat{\varepsilon}_i \rfloor^q \right)
+\end{equation}
+where $\hat{\varepsilon}_i = \varepsilon_i - \Delta_i$ represents the estimated synchronization error corrupted by the observation perturbation $\Delta_i$, as defined in \eqref{eq:error_decomposition}.
+
+To unify the analysis across different engagement geometries, let $\Upsilon^* = \min_{i \in \mathcal{M}} \{\Upsilon(\bar{\sigma}_i)\}$. Provided that the singular condition ($\sigma_i = 0$) is avoided, we have $\Upsilon^* > 0$. Notice that if $\sigma_i > \sigma_m$ for all $i \in \mathcal{M}$, then $\Upsilon^* = 1$. By defining $\bar{t}_{go} = \max_{i \in \mathcal{M}}\{t_{go,i}\}$ and isolating the bounded perturbation term $\zeta(\tilde{\mathbf{e}})$ induced by the observation error $\tilde{\mathbf{e}}$, the time derivative of $V_f$ can be upper-bounded as:
+\begin{equation}
+	\label{eq:Vf_general_bound}
+	\dot{V}_f \leq -\frac{\Upsilon^*}{\bar{t}_{go}} \left( \alpha \sum_{i=1}^{M} |\varepsilon_i|^{p+1} + \beta \sum_{i=1}^{M} |\varepsilon_i|^{q+1} \right) + \zeta(\tilde{\mathbf{e}})
+\end{equation}
+Invoking Lemma 2 and the algebraic graph theory property $\sum_{i=1}^{M} \varepsilon_{i}^{2} \ge 2 \lambda_2(\mathcal{L}) V_f$, inequality \eqref{eq:Vf_general_bound} is further transformed into:
+\begin{equation}
+	\label{eq:dotvflambda}
+	\dot{V}_f \leq -\frac{\Upsilon^*}{\bar{t}_{go}} \left[ \alpha \bigl(2\lambda_2(\mathcal{L}) V_f\bigr)^{\frac{1+p}{2}} + \beta M^{\frac{1-q}{2}} \bigl(2\lambda_2(\mathcal{L}) V_f\bigr)^{\frac{1+q}{2}} \right] + \zeta(\tilde{\mathbf{e}})
+\end{equation}
+The evolution of the cooperative system is thereby analyzed in two distinct phases based on the state of the distributed observer:
+
+\textbf{Phase 1: Prior to Observer Convergence ($0 \le t \le T_{obs}$).} 
+During this transient phase, the observation error $\tilde{\mathbf{e}}$ is non-zero but bounded. According to standard ISS theory, the negative definite structure of the nominal dynamics in \eqref{eq:dotvflambda} guarantees that the bounded perturbation $\zeta(\tilde{\mathbf{e}})$ will not cause the synchronization errors to diverge. Instead, $V_f$ remains confined within a bounded residual set dictated by the magnitude of $\zeta(\tilde{\mathbf{e}})$.
+
+\textbf{Phase 2: Post Observer Convergence ($t > T_{obs}$).} 
+Once the prescribed-time observer has exactly converged to the true states, the time-to-go estimation error vanishes ($\tilde{t}_{go,i} = 0$). Consequently, the perturbation term is entirely eliminated ($\zeta(\tilde{\mathbf{e}}) = 0$), and $\hat{\varepsilon}_i = \varepsilon_i$. To analyze the convergence rate, we introduce the variable transformation $y = \sqrt{2\lambda_2(\mathcal{L}) V_f}$ for $V_f \neq 0$. Taking the time derivative yields $\dot{y} = \frac{\lambda_2(\mathcal{L})\dot{V}_f}{y}$. Substituting the unperturbed bound of $\dot{V}_f$ into this expression gives:
+\begin{equation}
+	\dot{y} \leq -\frac{\Upsilon^*}{\bar{t}_{go}} \left[ \alpha \lambda_2(\mathcal{L}) y^p + \beta M^{\frac{1-q}{2}} \lambda_2(\mathcal{L}) y^q \right]
+\end{equation}
+This is a standard fixed-time convergent differential inequality. Therefore, the synchronization error state $y$ (and consequently $V_f$) converges exactly to zero within a fixed time $T_{sync}$, bounded by:
+\begin{equation}
+	T_{sync} \le \frac{\bar{t}_{go}}{\Upsilon^* \alpha \lambda_2(\mathcal{L})(1-p)} + \frac{\bar{t}_{go}}{\Upsilon^* \beta M^{\frac{1-q}{2}} \lambda_2(\mathcal{L})(q-1)}
+\end{equation}
+In conclusion, after the observer reconstructs the global state, the strict absence of observation perturbation guarantees that the relative time-to-go errors $e_i$ converge precisely to zero within a fixed time. This ensures $t_{go,1} = t_{go,2} = \cdots = t_{go,M}$, successfully accomplishing the simultaneous interception task. \hfill $\blacksquare$
+
+To enhance the resilience of the swarm under DoS attacks, a resilient control mechanism is introduced into the cooperative guidance architecture. During the initial phase before the prescribed-time observer converges (i.e., $t < T_{obs}$), the estimated states may contain significant observation errors, which could induce erratic maneuvers if the cooperative bias term is fully executed. To mitigate this, an error-dependent trust factor $\psi_i$ is designed to dynamically adjust the weight of the cooperative bias term. The total resilient guidance command is reformulated as:
+\begin{equation}
+	\label{eq:resilient_guidance}
+	\boldsymbol{A}_{\mathrm{norm} }= \mathbf{A}_i^{\mathrm{PNG}} + \psi_i(t, E_i) \boldsymbol{A}_i^{\mathrm{BT}}
+\end{equation}
+where $\mathbf{A}_i^{\mathrm{PNG}}$ acts as the robust baseline term ensuring target interception, and $\psi_i(t, E_i) \in (0, 1]$ serves as the resilient trust factor. Based on the local observation error norm $E_i = \|e^i(t)\|$, the trust factor is designed as:
+\begin{equation}
+	\label{eq:trust_factor}
+	\psi_i(t, E_i) = \min \left( 1, \exp(-\lambda E_i) \right)
+\end{equation}
+Here, $\lambda > 0$ is a tunable decay parameter dictating the system's sensitivity to observation uncertainties.
+
+\vspace{1mm}
+\begin{remark}
+	The proposed cyber-resilient architecture elegantly decouples the guidance objectives. When DoS attacks severely compromise the network, surging observation errors drive $\psi_i \to 0$. This effectively isolates the corrupted cooperative channels, forcing the interceptor to temporarily rely on the robust 3D PNG baseline to maintain a stable trajectory. Once the prescribed-time observer bypasses the communication interruptions and reconstructs the global states ($E_i \to 0$), the trust factor smoothly restores $\psi_i \to 1$, re-engaging the cooperative bias term for simultaneous interception. 
+	
+	However, cyber-attacks are not the only threat to swarm connectivity. In complex engagement environments, physical obstacles can obstruct the Line-of-Sight (LOS) between interceptors, fundamentally severing the communication links in a manner analogous to DoS attacks, while simultaneously posing a catastrophic collision risk. A comprehensive resilient framework must, therefore, address both the cyber anomalies addressed above and the physical safety constraints elaborated in the following section.
+\end{remark}
+\vspace{1mm}
+
+
+
+
+Proof Consider the Lyapunov function candidate characterizing the global synchronization error:
+\begin{equation}
+	\label{eq:Lyapunov_guidance}
+	V_f = \frac{1}{2} \boldsymbol{T}_{f}^T \mathcal{L} \boldsymbol{T}_{f} = \frac{1}{4} \sum_{i=1}^{M} \sum_{j=1}^{M} a_{ij} (t_{f,i} - t_{f,j})^2
+\end{equation}
+where $\boldsymbol{T}_{f}=[t_{f,1},...,t_{f,M}]^T$. According to Lemma 1, the matrix $\mathcal{L}$ is positive semidefinite, implying $V_f \ge 0$, and $V_f=0$ if and only if the impact times are synchronized, i.e., $t_{f,1}=t_{f,2} =\cdots=t_{f,M}$. The partial derivative of $V_f$ with respect to $t_{f,i}$ is derived as:
+\begin{equation}
+	\frac{\partial V_f}{\partial t_{f,i}} = \sum_{j=1}^{M} a_{ij}(t_{f,i} - t_{f,j}) = \varepsilon_{f,i}
+\end{equation}
+Since $t_{f,i} = t + t_{go,i}$, the difference in impact times is equivalent to the difference in times-to-go. Thus, the local synchronization error satisfies:
+\begin{equation}
+	\varepsilon_{f,i}=\sum_{j=1}^{M} a_{ij} (t_{go,i} - t_{go,j})=\varepsilon_{i}
+\end{equation}
+Taking the time derivative of $V_f$ yields:
+\begin{equation}
+	\label{eq:V_dot_general}
+	\dot{V}_f = \sum_{i=1}^{M} \frac{\partial V_f}{\partial t_{f,i}} \dot{t}_{f,i} = \sum_{i=1}^{M} \varepsilon_{i} \dot{t}_{f,i}
+\end{equation}
+Substituting the guidance law dynamics from \eqref{eq:bias_term_design} into \eqref{eq:dottfabt}, we have
+\begin{equation}
+	\label{eq:dottf3}
+	\dot{t}_{f,i} = - \frac{\Upsilon(\bar{\sigma}i)}{t{go,i}} \left( \alpha \lceil \hat{\varepsilon}_i \rfloor^p + \beta \lceil \hat{\varepsilon}_i \rfloor^q \right)
+\end{equation}
+Furthermore, by substituting \eqref{eq:dottf3} into \eqref{eq:V_dot_general}, we obtain:
+\begin{equation}
+	\label{eq:V_dot_substituted}
+	\dot{V}_f = - \sum_{i=1}^{M} \frac{\Upsilon(\bar{\sigma}_i)}{t_{go,i}} \varepsilon_{i} \left( \alpha \lceil \hat{\varepsilon}_i \rfloor^p + \beta \lceil \hat{\varepsilon}_i \rfloor^q \right)
+\end{equation}
+where $\hat{\varepsilon}_i = \varepsilon_i - \Delta_i$ is the estimated synchronization error as described in \eqref{eq:error_decomposition}.
+
+
+
+\textbf{Phase 1: Prior to Observer Convergence ($0 \le t \le T_{obs}$)} 
+
+\textit{1) ${\sigma}_i > {\sigma}_m, \forall i \in \mathcal{M}$}. In this case, the singularity avoidance function reduces to $\Upsilon(\bar{\sigma}_i) = 1$. Consequently, the time derivative of $V_f$ can be rewritten as
+\begin{equation}
+	\label{eq:Vfcase1}
+	\begin{aligned}
+		\dot{V}_f
+		&\leq  -\frac{1}{\bar{t}_{go}}
+		\left(
+		\alpha \sum_{i=1}^{M} \varepsilon_i \lceil \hat{\varepsilon}_i \rfloor^p
+		+ \beta \sum_{i=1}^{M} \varepsilon_i \lceil \hat{\varepsilon}_i \rfloor^q
+		\right) \
+		 \\ &  \leq -\frac{1}{\bar{t}_{go}}
+		\left(
+		\alpha \sum_{i=1}^{M} \left| \varepsilon_i \right|^{p+1}
+		+ \beta \sum_{i=1}^{M} \left| \varepsilon_i \right| ^{q+1}
+		\right)+ \zeta (\tilde{\mathbf{e}})
+	\end{aligned}
+\end{equation}
+where ${\bar{t}_{go}}=\max _{i \in \mathcal{M}}\left\{t_{go,i}\right\}$, and $\zeta (\tilde{\mathbf{e}})$ denotes the bounded perturbation term derived from the observation error vector $\tilde{\mathbf{e}}$. Furthermore, by invoking Lemma 2, the inequality can be rewritten as:
+\begin{equation}
+	\label{eq:dotvflambda}
+	\dot{V}_f \leq -\frac{1}{\bar{t}_{go}}\left[ \alpha \left( \sum_{i=1}^{M} \varepsilon_{i}^{2} \right)^{\frac{1+p}{2}} + \beta M^{\frac{1-q}{2}} \left( \sum_{i=1}^{M} \varepsilon_{i}^{2} \right)^{\frac{1+q}{2}} \right] + \zeta (\tilde{\mathbf{e}})
+\end{equation}
+Based on the algebraic graph theory, the positive semidefinite property of the Laplacian matrix $\mathcal{L}$ implies that there exists $Q \in \mathbb{R}^{M \times M}$ such that $\mathcal{L} = Q^T Q$. Therefore, for $V_f \neq 0$
+\begin{equation}
+	\frac{\sum_{i=1}^{M} \varepsilon_{i}^{2}}{V_f} = \frac{\boldsymbol{T}_f^T \mathcal{L}^T \mathcal{L} \boldsymbol{T}_f}{\frac{1}{2} \boldsymbol{T}_f^T \mathcal{L} \boldsymbol{T}_f} = \frac{2 \boldsymbol{T}_f^T Q^T Q Q^T Q \boldsymbol{T}_f}{\boldsymbol{T}_f^T Q^T Q \boldsymbol{T}_f} \ge 2 \lambda_2(\mathcal{L})
+\end{equation}
+where $\lambda_2(\mathcal{L})$ represents the minimum positive eigenvalue of $\mathcal{L}$. Consequently, we obtain
+\begin{equation}
+	\label{eq:lambda_relation}
+	\sum_{i=1}^{M} \varepsilon_{i}^{2} \ge 2 \lambda_2(\mathcal{L}) V_f
+\end{equation}
+Substituting \eqref{eq:lambda_relation} into \eqref{eq:dotvflambda} yields
+\begin{equation}
+	\dot{V}_f \leq -\frac{1}{\bar{t}_{go}}
+	\left(
+	\alpha \bigl(2\lambda_2(\mathcal{L}) V_f\bigr)^{\frac{1+p}{2}}
+	+ \beta M^{\frac{1-q}{2}}
+	\bigl(2\lambda_2(\mathcal{L}) V_f\bigr)^{\frac{1+q}{2}}
+	\right)
+	+ \zeta(\tilde{\mathbf{e}})
+\end{equation}
+To facilitate the stability analysis, define a variable transformation $y = \sqrt{2\lambda_2(\mathcal{L}) V_f}$ when $V_f \neq 0$.
+
+\textit{2) ${\sigma}_i \leq {\sigma}_m, \forall i \in \mathcal{M}$}. In this case, the gain is scaled by the singularity avoidance function $\Upsilon(\bar{\sigma}_i) \in [0, 1)$.
+
+Consider the condition where $\forall i \in \mathcal{M}, 0 < \sigma_i \le \sigma_m$, there exists a strictly positive lower bound for the scaling factor, denoted as $\Upsilon_{\min} = \min_{i \in \mathcal{M}} \{ \Upsilon(\bar{\sigma}_i) \} > 0$. Similar to the derivation in Case 1, we obtain
+\begin{equation}
+	\dot{V}_f \leq -\frac{\Upsilon_{\min}}{\bar{t}_{go}}
+	\left(
+	\alpha \sum_{i=1}^{M} \left| \varepsilon_i \right|^{p+1}
+	+ \beta \sum_{i=1}^{M} \left| \varepsilon_i \right| ^{q+1}
+	\right)
+	+ \zeta (\tilde{\mathbf{e}})
+\end{equation}
+By invoking Lemma 2 and the algebraic graph theory property $\sum \varepsilon_i^2 \ge 2\lambda_2(\mathcal{L})V_f$, the inequality is derived as:
+\begin{equation}
+	\dot{V}_f \leq -\frac{\Upsilon_{\min}}{\bar{t}_{go}}
+	\left[
+	\alpha \bigl(2\lambda_2(\mathcal{L}) V_f\bigr)^{\frac{1+p}{2}}
+	+ \beta M^{\frac{1-q}{2}}
+	\bigl(2\lambda_2(\mathcal{L}) V_f\bigr)^{\frac{1+q}{2}}
+	\right]
+	+ \zeta(\tilde{\mathbf{e}})
+\end{equation}
+This indicates that the system preserves the ISS property in the presence of bounded observation errors, although the convergence rate is scaled down by the factor $\Upsilon_{\min}$ compared to the normal case.
+
+In the singular condition where $\exists i \in \mathcal{M}, \sigma_i = 0$, the term $\Upsilon(\bar{\sigma}_i)$ becomes zero. Consequently, $\dot{V}_f$ is dominated solely by the perturbation $\zeta(\tilde{\mathbf{e}})$ if and only if $\Upsilon(\bar{\sigma}_j) \varepsilon_j = 0$ for all $j \in \mathcal{M}$. Since the nominal system is asymptotically stable and the observation error $\tilde{\mathbf{e}}$ is bounded, standard ISS theory guarantees that the synchronization errors will not diverge but remain confined within a bounded set determined by the perturbation magnitude.
+
+
+
+\textbf{Phase 2: Post Observer Convergence ($t > T_{obs}$).} 
+
+For $t > T_{obs}$, the prescribed-time observer has exactly converged to the true states. Therefore, the observation error of the time-to-go becomes zero, i.e., $\tilde{t}_{go,i} = 0$, which implies that the perturbation term strictly vanishes ($\Delta_i = 0$ and $\zeta(\tilde{\mathbf{e}}) = 0$). Consequently, the estimated synchronization error utilized in the control law is identical to the true consensus error, yielding $\hat{\varepsilon}_i = \varepsilon_i$.
+
+By substituting $\hat{\varepsilon}_i = \varepsilon_i$ into \eqref{eq:V_dot_substituted}, the time derivative of $V_f$ simplifies to:
+\begin{equation}
+	\dot{V}_f = - \sum_{i=1}^{M} \frac{\Upsilon(\bar{\sigma}_i)}{t_{go,i}} \left( \alpha |\varepsilon_i|^{p+1} + \beta |\varepsilon_i|^{q+1} \right)
+\end{equation}
+
+Similar to the analysis in Phase 1, the evolution of the Lyapunov function is evaluated under two conditions based on the leading angle:
+
+\textit{1) ${\sigma}_i > {\sigma}_m, \forall i \in \mathcal{M}$}. In this condition, the singularity avoidance function satisfies $\Upsilon(\bar{\sigma}_i) = 1$. The derivative $\dot{V}_f$ can be bounded by:
+\begin{equation}
+	\dot{V}_f \leq -\frac{1}{\bar{t}_{go}} \left( \alpha \sum_{i=1}^{M} |\varepsilon_i|^{p+1} + \beta \sum_{i=1}^{M} |\varepsilon_i|^{q+1} \right)
+\end{equation}
+By invoking Lemma 2 and the algebraic graph theory property $\sum_{i=1}^{M} \varepsilon_i^2 \ge 2\lambda_2(\mathcal{L})V_f$, the inequality is further derived as:
+\begin{equation}
+	\dot{V}_f \leq -\frac{1}{\bar{t}_{go}} \left[ \alpha \bigl(2\lambda_2(\mathcal{L}) V_f\bigr)^{\frac{1+p}{2}} + \beta M^{\frac{1-q}{2}} \bigl(2\lambda_2(\mathcal{L}) V_f\bigr)^{\frac{1+q}{2}} \right]
+\end{equation}
+To facilitate the fixed-time stability analysis, we apply the variable transformation $y = \sqrt{2\lambda_2(\mathcal{L}) V_f}$ for $V_f \neq 0$. Taking the time derivative yields $\dot{y} = \frac{\lambda_2(\mathcal{L})\dot{V}_f}{y}$. Substituting the bound of $\dot{V}_f$ into this expression gives:
+\begin{equation}
+	\dot{y} \leq -\frac{1}{\bar{t}_{go}} \left[ \alpha \lambda_2(\mathcal{L}) y^p + \beta M^{\frac{1-q}{2}} \lambda_2(\mathcal{L}) y^q \right]
+\end{equation}
+This is a standard fixed-time convergent differential inequality. According to the fixed-time stability theorem, the synchronization error state $y$ (and consequently $V_f$) will converge exactly to zero within a fixed time $T_{sync}$, bounded by:
+\begin{equation}
+	T_{sync} \le \frac{\bar{t}_{go}}{\alpha \lambda_2(\mathcal{L})(1-p)} + \frac{\bar{t}_{go}}{\beta M^{\frac{1-q}{2}} \lambda_2(\mathcal{L})(q-1)}
+\end{equation}
+
+\textit{2) ${\sigma}_i \leq {\sigma}_m, \forall i \in \mathcal{M}$}. In this condition, the scaling function satisfies $\Upsilon(\bar{\sigma}_i) \in [0, 1)$. 
+
+Assuming $0 < \sigma_i \le \sigma_m$ for all $i$, we define the strictly positive lower bound $\Upsilon_{\min} = \min_{i \in \mathcal{M}} \{ \Upsilon(\bar{\sigma}_i) \} > 0$. Following the identical derivation steps, the dynamic of $y$ is governed by:
+\begin{equation}
+	\dot{y} \leq -\frac{\Upsilon_{\min}}{\bar{t}_{go}} \left[ \alpha \lambda_2(\mathcal{L}) y^p + \beta M^{\frac{1-q}{2}} \lambda_2(\mathcal{L}) y^q \right]
+\end{equation}
+Because the observation error $\tilde{\mathbf{e}}$ has completely vanished, the system is no longer merely Input-to-State Stable (ISS) but strictly fixed-time convergent. The local synchronization errors $e_i$ will converge exactly to zero in a scaled fixed time $T_{sync}' \le T_{sync} / \Upsilon_{\min}$.
+
+In conclusion, for $t > T_{obs}$, the absence of observation perturbation guarantees that the relative time-to-go errors $e_i$ converge precisely to zero within a fixed time. This ensures the times-to-go of all missiles achieve consensus (i.e., $t_{go,1} = t_{go,2} = \cdots = t_{go,M}$), thereby successfully accomplishing the simultaneous interception task. This completes the proof. \hfill $\blacksquare$
+%是否需要加一个小节标题
+
+To enhance the resilience of the swarm under DoS attacks, a resilient control mechanism is introduced into the cooperative guidance architecture. During the initial phase before the prescribed-time observer converges (i.e., $t < T_{obs}$), the estimated states may contain significant observation errors, which could induce erratic maneuvers if the cooperative bias term is fully executed. To mitigate this, an error-dependent trust factor $\psi_i$ is designed to dynamically adjust the weight of the cooperative bias term. The total resilient guidance command is reformulated as
+\begin{equation}
+	\label{eq:resilient_guidance}
+	\boldsymbol{A}_{\mathrm{norm} }= \mathbf{A}_i^{\mathrm{PNG}} + \psi_i(t, E_i) \boldsymbol{A}_i^{\mathrm{BT}}
+\end{equation}
+where $\mathbf{A}_i^{\mathrm{PNG}}$ acts as the robust baseline term ensuring target interception, and $\psi_i(t, E_i) \in (0, 1]$ serves as the resilient trust factor. Based on the local observation error norm $E_i = \|e^i(t)\|$, the trust factor is designed as
+\begin{equation}
+	\label{eq:trust_factor}
+	\psi_i(t, E_i) = \min \left( 1, \Theta_i(E_i) \right)
+\end{equation}
+where $\Theta_i(E_i)$ is the error confidence function, defined by an exponential decay form:
+\begin{equation}
+	\label{eq:error_confidence}
+	\Theta_i(E_i) = \exp(-\lambda E_i)
+\end{equation}
+Here, $\lambda > 0$ is a tunable decay parameter that dictates the sensitivity of the guidance system to observation uncertainties.
+\vspace{1mm}
+\begin{remark}
+	The physical mechanism of the resilient factor $\psi_i$ is intuitive. When the communication network is heavily compromised by DoS attacks, the observation error $E_i$ surges. Consequently, the trust factor $\psi_i \to 0$, effectively suppressing the cooperative bias term and forcing the $i$-th missile to rely purely on the baseline 3D PNG to maintain a stable interception trajectory. As time approaches the prescribed convergence time $T_{obs}$, the distributed observer successfully reconstructs the global states, driving $E_i \to 0$. In this case, $\Theta_i(E_i) \to 1$ and $\psi_i = 1$, safely restoring the full cooperative capability to achieve simultaneous interception.
+\end{remark}
+\vspace{1mm}
+%此处补充一个remark 综合总结上述内容，并引出上述架构可以解决dos攻击下的通信中断问题，同时引出下述避障内容（应该怎么引出呢）
+\begin{figure*}[htbp]
+	\centering
+	\includegraphics[width=0.95\textwidth]{Fig/framework.pdf}
+	\caption{.}
+	\label{fig:framework}
+\end{figure*}
+\section{HO-CBF-Based Spatially Resilient Obstacle Avoidance}
+While the distributed observer proposed in Section IV guarantees information synchronization under cyber DoS attacks, practical cooperative engagements inevitably encounter physical constraints. In complex environments, static physical obstacles not only pose a direct collision threat to the interceptors but may also physically sever the LOS communication links among the swarm. To bridge the gap between cyber resilience and physical safety, this section proposes a state-adaptive weighting mechanism for connectivity preservation and a High-Order Control Barrier Function (HO-CBF) based optimal evasive guidance law designed specifically for stationary obstacles.
+\subsection{Obstacle Modeling and Connectivity Analysis}
+Consider the $i$-th and $j$-th missiles with spatial positions denoted by $\mathbf{p}_i \in \mathbb{R}^3$ and $\mathbf{p}_j \in \mathbb{R}^3$, respectively. The communication link between them can be parameterized as a spatial line segment:
+\begin{equation}
+	\mathbf{l}(\tau) = \mathbf{p}_i + \tau(\mathbf{p}_j - \mathbf{p}_i), \quad \tau \in [0, 1]
+\end{equation}
+
+This paper models obstacles using two generic representations: spherical and cylindrical. To facilitate subsequent discussions,a unified matrix $W \in \mathbb{R}^{3 \times 3}$ is introduced. For a spherical obstacle, $W = I_3$. For a cylindrical obstacle with a central axis direction $\mathbf{n}$, $W = I_3 - \mathbf{n}\mathbf{n}^T$. Suppose the obstacle is centered at a fixed position $\mathbf{p}_o \in \mathbb{R}^3$ with a safety radius $R_o$. The squared shortest distance from the obstacle's center (or axis) to any arbitrary point on the communication link is given by the Euclidean norm:
+\begin{equation}
+	d^2(\tau) = (\mathbf{l}(\tau) - \mathbf{p}_o)^T W (\mathbf{l}(\tau) - \mathbf{p}_o)
+\end{equation}
+
+To ascertain whether the obstacle intersects the communication link, we determine the minimum distance by taking the derivative of $d^2(\tau)$ with respect to $\tau$ and setting it to zero. Since $P$ is a symmetric matrix, this yields the analytical solution for the critical parameter $\tau^*$:
+\begin{equation}
+	\tau^* = - \frac{(\mathbf{p}_j - \mathbf{p}_i)^T W (\mathbf{p}_i - \mathbf{p}_o)}{(\mathbf{p}_j - \mathbf{p}_i)^T W (\mathbf{p}_j - \mathbf{p}_i)}
+\end{equation}
+
+The physical LOS communication link is considered severed if the shortest distance falls within the obstacle's safety radius. This occlusion event is mathematically triggered when the following conditions are simultaneously satisfied:
+\begin{equation}
+	\label{physicaldos}
+	\tau^* \in [0, 1] \quad \text{and} \quad d(\tau^*) \le R_o
+\end{equation}
+
+When condition \eqref{physicaldos} is satisfied, the stationary obstacle physically severs the communication link, rendering the corresponding adjacency matrix element $a_{ij} = 0$. This physical occlusion, compounded by distributed DoS attacks, severely deteriorates the communication topology. 
+
+
+%这部分要和前面呼应topology，改变图的形式.
+
+%以下部分要基于改变后的topology以及障碍去动态调整。
+Under such adverse conditions, a critical conflict emerges between cooperative engagement and safe obstacle avoidance. Strictly adhering to the baseline cooperative guidance could drive the interceptor dangerously close to the obstacle for the sake of time synchronization. Fundamentally, safe evasion must take precedence over swarm consensus, as a collision directly results in the loss of the interceptor. This necessity motivates the proposed state-adaptive weighting strategy, which smoothly shifts the guidance authority from cooperative consensus to autonomous safety preservation.
+
+
+\subsection{Effective Obstacle Avoidance Using Relative Distance Obstacle Function}
+Consider the 3D point-mass kinematics of the $i$-th missile in a compact form:
+\begin{equation}
+	\label{obs_state}
+	{\dot x_{s,i}} = f({x_{s,i}}) + g({x_{s,i}}){a_i}
+\end{equation}
+with
+\begin{equation}
+	f({x_{s,i}}) \triangleq \begin{bmatrix} {{\boldsymbol{v}}_i} \\ 0_{3\times1} \end{bmatrix}, \quad 
+	g({x_{s,i}}) \triangleq \begin{bmatrix} 0_{3\times3} \\ I_{3\times3} \end{bmatrix}
+\end{equation}
+where the state vector is defined as $x_{s,i} = [{\boldsymbol{p}}_i^T, {\boldsymbol{v}}_i^T]^T \in \mathbb{R}^6$, representing the position and velocity of missile $i$, respectively. The control input is the acceleration command $u \triangleq a_i \in \mathbb{R}^3$. 
+\vspace{1mm}
+\begin{property}
+	\label{Lipschitz}
+	$f({x_{s,i}}): \mathbb{R}^6 \rightarrow \mathbb{R}^6$ and $g({x_{s,i}}): \mathbb{R}^6 \rightarrow \mathbb{R}^{6 \times 3}$ satisfy the local Lipschitz continuity condition for $x_{s,i} \in \mathcal{X}$, such that $\|f(x_1) - f(x_2)\| \le b_f \|x_1 - x_2\|$ and $\|g(x_1) - g(x_2)\| \le b_g \|x_1 - x_2\|$, where $b_f$ and $b_g$ represent the respective Lipschitz constants.
+\end{property}
+\vspace{1mm}
+
+Based on the definition of the unified matrix ${\bf{W}}$, the time-independent obstacle barrier function for a single stationary obstacle is formulated as:
+% Note: Multi-obstacle formulations can be appended at the end of this section
+\begin{equation}
+	h({{\boldsymbol{p}}_i}) = {\boldsymbol{r}}_o^T{\bf{W}}{{\boldsymbol{r}}_o} - r_{ob}^2
+\end{equation}
+where ${{\boldsymbol{r}}_o} = {{\boldsymbol{p}}_i} - {{\boldsymbol{p}}_o}$ denotes the relative position between missile $i$ and the obstacle, and $r_{ob}$ represents the obstacle radius.
+
+\begin{property}
+	$h({{\boldsymbol{p}}_i})$ has a relative degree of two with respect to $a_i$ along the vector field \eqref{obs_state}.
+\end{property}
+
+\textit{Proof}
+	Taking the first time derivative of $h({{\boldsymbol{p}}_i})$ along the vector field, we obtain
+	\begin{equation}
+		\dot h = \frac{{\partial h}}{{\partial {{\boldsymbol{p}}_i}}}{\boldsymbol{\dot p}}_i = 2{\boldsymbol{r}}_o^T{\bf{W}}{{\boldsymbol{v}}_i} \triangleq {L_f}h
+	\end{equation}
+	Because $\dot{h}(x_{s,i})$ does not explicitly contain the control input $a_i$, it yields $L_g h(x_{s,i}) = 0$. Taking the second time derivative yields
+\begin{equation}
+	\begin{split}
+		\ddot h &= \frac{{\partial ({L_f}h)}}{{\partial {{\boldsymbol{p}}_i}}}{{\boldsymbol{v}}_i} + \frac{{\partial ({L_f}h)}}{{\partial {{\boldsymbol{v}}_i}}}{a_i} \\
+		&= 2{\boldsymbol{v}}_i^T{\bf{W}}{{\boldsymbol{v}}_i} + 2{\boldsymbol{r}}_o^T{\bf{W}}{a_i}= L_f^2h + {L_g}{L_f}h \boldsymbol{a_i}
+	\end{split}
+\end{equation}
+	Thus, $L_g L_f h(x_{s,i}) =  2{\boldsymbol{r}}_o^T{\bf{W}} \neq 0$. Therefore, $h({{\boldsymbol{p}}_i})$ has a relative degree of two, namely, $k=2$. \hfill $\blacksquare$
+
+
+According to the HO-CBF theory, the safe state set can be defined by the following obstacle functions
+\begin{equation}
+	\label{obs_func}
+	\begin{cases}
+		{{\cal C}_1} = \{ {x_{s,i}}:{\psi _0}({x_{s,i}}) \ge 0\}, {\psi _0}({x_{s,i}}) = h({{\boldsymbol{p}}_i})\\
+		{{\cal C}_2} = \{ {x_{s,i}}:{\psi _1}({x_{s,i}}) \ge 0\}, {\psi _1}({x_{s,i}}) = {{\dot \psi }_0}({x_{s,i}}) + {\chi _1}\left( {{\psi _0}({x_{s,i}})} \right)
+	\end{cases}
+\end{equation}
+
+Then, the control set is determined by:
+\begin{equation}
+	\begin{split}
+		K({x_{s,i}}) = \{ & a_i \in {\mathbb{R}^3} : L_{f}{\psi _1}({x_{s,i}}) + {L_{g}}{\psi _1}({x_{s,i}})a_i \\
+		& \left. + {\chi _2}({\psi _1}({x_{s,i}})) \ge 0 \right\}, \quad {x_{s,i}} \in {\cal S} \triangleq {{\cal C}_1} \cap {{\cal C}_2}
+	\end{split}
+\end{equation}
+
+After identifying the barrier function and the safe control set for the generalized 3D obstacle, it is crucial to devise a suitable guidance law that ensures effective obstacle avoidance. In fact, once a nominal guidance law is obtained, the most intuitive approach is to project the predetermined guidance command into the safe control set $K({x_{s,i}})$. Furthermore, unlike purely planar engagements, the 3D acceleration command must also satisfy a velocity perpendicularity constraint. This ensures that only the flight path angle is altered without affecting the speed magnitude. The following theorem provides a detailed illustration of this process.
+
+
+\begin{theorem}
+	For the 3D missile kinematics, consider the obstacle avoidance sets defined by the twice differentiable barrier function $h({\boldsymbol{p}}_i)$ and ${\psi _1}({\boldsymbol{x}}_{s,i})$ \eqref{obs_func}, the nominal Lipschitz continuous guidance law used to intercept the target is denotes as ${\boldsymbol{A}}_{\mathrm{norm}}$, if the projected guidance command ${\boldsymbol{A}}_i$ is determined as the following optimization problem:
+	\begin{equation}
+		{\boldsymbol{A}}_i = \arg \min_{{\boldsymbol{u}} \in \mathbb{R}^3} \frac{1}{2} \| {\boldsymbol{u}} - {\boldsymbol{A}}_{norm} \|^2 \nonumber
+	\end{equation}
+	\begin{equation}
+		\label{constraints}
+		{\rm{s.t.}} \quad  L_{{f}}{\psi _1}({{x}}_{s,i}) + L_{{g}}{\psi _1}({{x}}_{s,i}){\boldsymbol{u}} + {\chi _2}({\psi _1}({{x}}_{s,i})) \ge 0, \quad {\boldsymbol{v}}_i^T {\boldsymbol{u}} = 0.
+	\end{equation}
+	Then, the following holds.
+	
+	1) ${\boldsymbol{A}}_i$ has the following closed-form expression
+	\begin{equation}
+		\label{ai_as}
+		{\boldsymbol{A}}_i = {\boldsymbol{A}}_{norm} + {\boldsymbol{A}}_s
+	\end{equation}
+	where , with , and ${\boldsymbol{M}}_v = {\boldsymbol{I}}_{3\times 3} - \frac{{\boldsymbol{v}}_i {\boldsymbol{v}}_i^T}{\|{\boldsymbol{v}}_i\|^2}$.
+	
+	2) The resulting guidance law ${\boldsymbol{A}}_i$ will avoid the generalized 3D obstacle defined by $h({\boldsymbol{p}}_i)$.
+	
+	3) ${\boldsymbol{A}}_i$ is Lipschitz continuous.
+\end{theorem}
+
+Proof: We divide the proof process into three parts. For brevity in the derivation, the state argument $({\boldsymbol{x}}_{s,i})$ is occasionally omitted.
+
+1) Let us prove the closed-form expression using the Karush-Kuhn-Tucker (KKT) conditions.
+The Lagrangian for this problem is formulated as:
+\begin{equation}
+	\begin{split}
+		\mathcal{L}({\boldsymbol{u}}, \lambda, \mu) = & \frac{1}{2} \| {\boldsymbol{u}} - {\boldsymbol{A}}_{\mathrm{norm}} \|^2 \\
+		& - \lambda \left(L_{{g}}{\psi _1} {\boldsymbol{u}} + L_{{f}}{\psi _1} + {\chi _2}({\psi _1}) \right) + \mu({\boldsymbol{v}}_i^T {\boldsymbol{u}})
+	\end{split}
+\end{equation}
+where $\lambda \ge 0$ is the KKT multiplier corresponding to the safety constraint, and $\mu$ is the multiplier corresponding to the vertical constraint.
+
+Then, the stationarity condition by the KKT conditions is calculated as
+\begin{equation}
+	\frac{\partial \mathcal{L}}{\partial {\boldsymbol{u}}} = {\boldsymbol{u}} - {\boldsymbol{A}}_{\mathrm{norm}} - \lambda L_{{g}}{\psi _1}^T + \mu {\boldsymbol{v}}_i = \boldsymbol{0}
+\end{equation}
+Left-multiplying both sides of the equation by ${\boldsymbol{v}}_i^T$ yields:
+\begin{equation}
+	\label{KKT2}
+	{\boldsymbol{v}}_i^T {\boldsymbol{u}} - {\boldsymbol{v}}_i^T {\boldsymbol{A}}_{\mathrm{norm}} - \lambda {\boldsymbol{v}}_i^T L_{{g}}{\psi _1}^T + \mu {\boldsymbol{v}}_i^T {\boldsymbol{v}}_i = 0
+\end{equation}
+Applying the vertical constraints ${\boldsymbol{v}}_i^T {\boldsymbol{u}} = 0$ and ${\boldsymbol{v}}_i^T {\boldsymbol{A}}_{\mathrm{norm}}= 0$, $\mu$ is solved as
+\begin{equation}
+	\mu = \frac{\lambda {\boldsymbol{v}}_i^T L_{{g}}{\psi _1}^T}{\|{\boldsymbol{v}}_i\|^2}
+\end{equation}
+Substituting $\mu$ into \eqref{KKT2} yields
+\begin{equation}
+	{\boldsymbol{u}} = {\boldsymbol{A}}_{\mathrm{norm}} + \lambda L_{{g}}{\psi _1}^T - \lambda \frac{{\boldsymbol{v}}_i {\boldsymbol{v}}_i^T}{\|{\boldsymbol{v}}_i\|^2} L_{{g}}{\psi _1}^T
+\end{equation}
+To simplify the subsequent derivation, we define the velocity normal plane projection matrix ${\boldsymbol{M}}_v = {\bf{I}}_{3\times3} - \frac{{\boldsymbol{v}}_i {\boldsymbol{v}}_i^T}{\|{\boldsymbol{v}}_i\|^2}$. The control input then becomes
+\begin{equation}
+	\label{u_lambda}
+	{\boldsymbol{u}} = {\boldsymbol{A}}_{\mathrm{norm}} + \lambda {\boldsymbol{M}}_v L_{\boldsymbol{g}}{\psi _1}^T
+\end{equation}
+This expression also indicates that the obstacle avoidance correction term is aligned with the projection of the safety gradient onto the velocity normal plane.
+
+Substituting \eqref{u_lambda} into \eqref{constraints} yields
+\begin{equation}
+	\label{Lgphi1}
+	L_{{g}}{\psi _1} \left({\boldsymbol{A}}_{\mathrm{norm}} + \lambda {\boldsymbol{M}}_v L_{{g}}{\psi _1}^T\right) + L_{{f}}{\psi _1} + {\chi _2}({\psi _1}) \ge 0
+\end{equation}
+Rearranging \eqref{Lgphi1} yields
+\begin{equation}
+	\lambda L_{{g}}{\psi _1} {\boldsymbol{M}}_v L_{{g}}{\psi _1}^T \ge -\left(L_{{g}}{\psi _1} {\boldsymbol{A}}_{\mathrm{norm}} + L_{{f}}{\psi _1} + {\chi _2}({\psi _1})\right)
+\end{equation}
+Let $\Psi = L_{{g}}{\psi _1} {\boldsymbol{A}}_{\mathrm{norm}} + L_{{f}}{\psi _1} + {\chi _2}({\psi _1})$. Since ${\boldsymbol{M}}_v$ is a symmetric idempotent matrix (i.e., ${\boldsymbol{M}}_v^T {\boldsymbol{M}}_v = {\boldsymbol{M}}_v$), it follows that $L_{{g}}{\psi _1} {\boldsymbol{M}}_v L_{{g}}{\psi _1}^T \ge 0$. Solving for the minimum non-negative value of $\lambda$, we have
+\begin{equation}
+	\lambda = -\left(L_{\boldsymbol{g}}{\psi _1} {\boldsymbol{M}}_v L_{\boldsymbol{g}}{\psi _1}^T\right)^{-1} \min\{\Psi, 0\}
+\end{equation}
+In conclusion, the optimal guidance law is
+\begin{equation}
+	{\boldsymbol{A}}_i = {\boldsymbol{A}}_{\mathrm{norm}} + {\boldsymbol{A}}_s
+\end{equation}
+where ${\boldsymbol{A}}_s = -(L_{{g}}{\psi _1} {\boldsymbol{M}}_v L_{{g}}{\psi _1}^T)^{-1} \min\{\Psi, 0\} {\boldsymbol{M}}_v L_{{g}}{\psi _1}^T$.
+
+2) Take the time derivative of $\psi_1({{x}}_{s,i})$
+\begin{equation}
+	\begin{split}
+		\dot{\psi}_1({{x}}_{s,i}) & = \frac{\partial \psi_1({{x}}_{s,i})}{\partial {{x}}_{s,i}} ({f} +{g}{\boldsymbol{A}}_i) = L_{{f}}{\psi _1} + L_{{g}}{\psi _1}({\boldsymbol{A}}_{\mathrm{norm}} + {\boldsymbol{A}}_s) \\
+		& = L_{{f}}{\psi _1} + L_{{g}}{\psi _1}{\boldsymbol{A}}_{\mathrm{norm}} - \min\{\Psi, 0\}
+	\end{split}
+\end{equation}
+If $\Psi \ge 0$, ${\boldsymbol{A}}_s = \boldsymbol{0}$, \eqref{ai_as} yields ${\boldsymbol{A}}_i = {\boldsymbol{A}}_{\mathrm{norm}}$
+\begin{equation}
+	\label{Psige0}
+	\dot{\psi}_1({\boldsymbol{x}}_{s,i}) \ge -{\chi _2}({\psi _1}({\boldsymbol{x}}_{s,i}))
+\end{equation}
+If $\Psi \le 0$, $-\min\{\Psi, 0\} = -\Psi$, \eqref{Psige0} becomes:
+\begin{equation}
+	\dot{\psi}_1({\boldsymbol{x}}_{s,i}) = L_{\boldsymbol{f}}{\psi _1} + L_{\boldsymbol{g}}{\psi _1}{\boldsymbol{A}}_{\mathrm{norm}} - \Psi  \ge -{\chi _2}({\psi _1}({\boldsymbol{x}}_{s,i}))
+\end{equation}
+Then, ${\boldsymbol{A}}_i$ leads to the forward invariance of $\psi_1({{x}}_{s,i})$, i.e., ${\psi _1}({{x}}_{s,i}) \ge 0, \ \forall {{x}}_{s,i} \in \mathcal{S}$. Due to ${\psi _1}({{x}}_{s,i}) = {\dot{\psi} _0}({{x}}_{s,i}) + {\chi _1}({\psi _0}({{x}}_{s,i}))$ and $\psi_0({{x}}_{s,i}) = h({\boldsymbol{p}}_i)$, it yields
+\begin{equation}
+	\dot{\psi}_1({{x}}_{s,i})=\dot{\psi}_0({{x}}_{s,i}) + {\chi _1}({\psi _0}({\boldsymbol{x}}_{s,i})) = \dot{h}({\boldsymbol{p}}_i) + {\chi _1}(h({\boldsymbol{p}}_i)) \ge 0
+\end{equation}
+Therefore, ${\boldsymbol{A}}_i$ leads to the forward invariance of $h({\boldsymbol{p}}_i)$, i.e., $h({\boldsymbol{p}}_i) \ge 0, \ \forall {\boldsymbol{x}}_{s,i} \in \mathcal{S}$. Thus, the missile will effectively avoid the generalized 3D obstacle.
+
+3) We briefly prove the local \textit{Lipschitz} continuity of ${\boldsymbol{A}}_i$. From Property 1, we have the facts of local \textit{Lipschitz} continuity of ${\boldsymbol{f}}({\boldsymbol{x}}_{s,i})$ and ${\boldsymbol{g}}({\boldsymbol{x}}_{s,i})$ on $\mathcal{X}$. Due to the quadratic differentiability of $h({\boldsymbol{p}}_i)$, it obtains that $\dot{h}({\boldsymbol{p}}_i)$ and ${\psi _1}({\boldsymbol{x}}_{s,i})$ are \textit{Lipschitz} continuous. Along with the definition that the nominal guidance law ${\boldsymbol{A}}_{\mathrm{norm}}$ is \textit{Lipschitz} continuous, $\Psi$ is locally \textit{Lipschitz} continuous. Since the $\min$ operator, the projection matrix ${\boldsymbol{M}}_v$, and ${\boldsymbol{A}}_s$ are \textit{Lipschitz} continuous, the resulting ${\boldsymbol{A}}_i$ is locally \textit{Lipschitz} continuous on $\mathcal{X}$.
+
+That completes the proof.\hfill $\blacksquare$
+
+
+
+
+\subsection{Effective Obstacle Avoidance Using Relative Distance Obstacle Function}
+To ensure consistency with the distributed observer design and cooperative engagement formulations, the 3D relative kinematics of the $i$-th missile are expressed using the identical state vector defined in Section IV. Let $\mathbf{x}^i = [R_i, V_i, \theta_i, \phi_i, \vartheta_i, \varphi_i]^\top \in \mathbb{R}^6$. The kinematics presented in \eqref{eq:dotr}-\eqref{eq:dotphi} can be rewritten in a compact control-affine form as:
+\begin{equation}
+	\label{obs_state}
+	\dot{\mathbf{x}}^i = f(\mathbf{x}^i) + g(\mathbf{x}^i)\mathbf{u}_i
+\end{equation}
+where $\mathbf{u}_i = [A_{y,i}, A_{z,i}]^\top \in \mathbb{R}^2$ is the lateral acceleration control input applied in the velocity frame. The drift vector $f(\mathbf{x}^i) \in \mathbb{R}^6$ represents the unforced kinematics, and the control input matrix $g(\mathbf{x}^i) \in \mathbb{R}^{6 \times 2}$ maps the lateral accelerations to the angular dynamics. 
+
+Let $\mathbf{p}_i(\mathbf{x}^i) \in \mathbb{R}^3$ and $\mathbf{v}_i(\mathbf{x}^i) \in \mathbb{R}^3$ denote the mappings from the state $\mathbf{x}^i$ to the spatial position and velocity of the missile in the inertial frame, respectively. Based on the engagement geometry, these can be explicitly determined by the target position $\mathbf{p}_T$, the LOS range $R_i$, and the respective angular states.
+
+\vspace{1mm}
+\begin{property}
+	\label{Lipschitz}
+	The vector fields $f(\mathbf{x}^i): \mathbb{R}^6 \rightarrow \mathbb{R}^6$ and $g(\mathbf{x}^i): \mathbb{R}^6 \rightarrow \mathbb{R}^{6 \times 2}$ satisfy the local Lipschitz continuity condition for $\mathbf{x}^i \in \mathcal{X}$, such that $\|f(\mathbf{x}_1) - f(\mathbf{x}_2)\| \le b_f \|\mathbf{x}_1 - \mathbf{x}_2\|$ and $\|g(\mathbf{x}_1) - g(\mathbf{x}_2)\| \le b_g \|\mathbf{x}_1 - \mathbf{x}_2\|$, where $b_f$ and $b_g$ represent the respective Lipschitz constants.
+\end{property}
+\vspace{1mm}
+
+Based on the definition of the unified matrix ${\bf{W}}$, the time-independent obstacle barrier function for a single stationary obstacle is formulated directly with respect to the state $\mathbf{x}^i$:
+\begin{equation}
+	h(\mathbf{x}^i) = {\boldsymbol{r}}_o(\mathbf{x}^i)^T{\bf{W}}{{\boldsymbol{r}}_o(\mathbf{x}^i)} - r_{ob}^2
+\end{equation}
+where ${{\boldsymbol{r}}_o(\mathbf{x}^i)} = {{\boldsymbol{p}}_i(\mathbf{x}^i)} - {{\boldsymbol{p}}_o}$ denotes the relative position between missile $i$ and the obstacle, and $r_{ob}$ represents the obstacle radius.
+
+\begin{property}
+	$h(\mathbf{x}^i)$ has a relative degree of two with respect to the lateral control input $\mathbf{u}_i$ along the vector field \eqref{obs_state}.
+\end{property}
+
+\textit{Proof:}
+Taking the first time derivative of $h(\mathbf{x}^i)$ along the vector field, we obtain
+\begin{equation}
+	\dot h = \frac{\partial h}{\partial \mathbf{p}_i} \dot{\mathbf{p}}_i = 2{\boldsymbol{r}}_o^T{\bf{W}}{{\boldsymbol{v}}_i} \triangleq {L_f}h(\mathbf{x}^i)
+\end{equation}
+Because $\dot{h}$ is solely a function of position and velocity, it does not explicitly contain the acceleration control input $\mathbf{u}_i$, yielding $L_g h(\mathbf{x}^i) = \mathbf{0}$. Taking the second time derivative yields
+\begin{equation}
+	\ddot h = 2{\boldsymbol{v}}_i^T{\bf{W}}{{\boldsymbol{v}}_i} + 2{\boldsymbol{r}}_o^T{\bf{W}}{{\boldsymbol{a}}_i}
+\end{equation}
+Note that the Cartesian acceleration ${\boldsymbol{a}}_i$ is generated entirely by the lateral commands within the velocity frame. Thus, ${\boldsymbol{a}}_i = {\bf{J}}_V(\mathbf{x}^i) \mathbf{u}_i$, where ${\bf{J}}_V = [\mathbf{j}_V, \mathbf{k}_V] \in \mathbb{R}^{3 \times 2}$ represents the unit direction vectors of the velocity frame's $Y_V$ and $Z_V$ axes mapped to the inertial frame. Substituting this relationship yields:
+\begin{equation}
+	\ddot h = 2{\boldsymbol{v}}_i^T{\bf{W}}{{\boldsymbol{v}}_i} + 2{\boldsymbol{r}}_o^T{\bf{W}}{\bf{J}}_V \mathbf{u}_i = L_f^2h + {L_g}{L_f}h \mathbf{u}_i
+\end{equation}
+Thus, $L_g L_f h(\mathbf{x}^i) = 2{\boldsymbol{r}}_o^T{\bf{W}}{\bf{J}}_V \neq \mathbf{0}$. Therefore, $h(\mathbf{x}^i)$ has a relative degree of two, namely, $k=2$. \hfill $\blacksquare$
+
+According to the HO-CBF theory, the safe state set can be defined by the following obstacle functions:
+\begin{equation}
+	\label{obs_func}
+	\begin{cases}
+		{{\cal C}_1} = \{ \mathbf{x}^i:{\psi _0}(\mathbf{x}^i) \ge 0\}, \quad {\psi _0}(\mathbf{x}^i) = h(\mathbf{x}^i)\\
+		{{\cal C}_2} = \{ \mathbf{x}^i:{\psi _1}(\mathbf{x}^i) \ge 0\}, \quad {\psi _1}(\mathbf{x}^i) = {{\dot \psi }_0}(\mathbf{x}^i) + {\chi _1}\left( {{\psi _0}(\mathbf{x}^i)} \right)
+	\end{cases}
+\end{equation}
+
+Then, the safe control set is determined by:
+\begin{equation}
+	\begin{split}
+		K(\mathbf{x}^i) = \{ & \mathbf{u}_i \in {\mathbb{R}^2} : L_{f}{\psi _1}(\mathbf{x}^i) + {L_{g}}{\psi _1}(\mathbf{x}^i)\mathbf{u}_i \\
+		& \left. + {\chi _2}({\psi _1}(\mathbf{x}^i)) \ge 0 \right\}, \quad \mathbf{x}^i \in {\cal S} \triangleq {{\cal C}_1} \cap {{\cal C}_2}
+	\end{split}
+\end{equation}
+
+By unifying the state vector, a significant advantage emerges: the physical constraint requiring the acceleration to be orthogonal to the velocity vector (i.e., ${\boldsymbol{v}}_i^T {\boldsymbol{a}}_i = 0$) is inherently satisfied by the definition of $\mathbf{u}_i \in \mathbb{R}^2$. Consequently, this equality constraint can be naturally eliminated from the CBF optimization framework, substantially simplifying the derivation of the safe guidance law.
+
+\begin{theorem}
+	For the 3D missile kinematics described by \eqref{obs_state}, consider the obstacle avoidance sets defined by the twice differentiable barrier function $h(\mathbf{x}^i)$ and ${\psi _1}(\mathbf{x}^i)$ in \eqref{obs_func}. Let the nominal Lipschitz continuous cooperative guidance law derived in Section IV be denoted as $\mathbf{u}_{\mathrm{norm}} = [A_{y,i}^{\mathrm{norm}}, A_{z,i}^{\mathrm{norm}}]^\top$. If the safe guidance command $\mathbf{u}_i$ is determined by the following optimization problem:
+	\begin{equation}
+		\mathbf{u}_i = \arg \min_{\mathbf{u} \in \mathbb{R}^2} \frac{1}{2} \| \mathbf{u} - \mathbf{u}_{\mathrm{norm}} \|^2 \nonumber
+	\end{equation}
+	\begin{equation}
+		\label{constraints}
+		{\rm{s.t.}} \quad  L_{{f}}{\psi _1}(\mathbf{x}^i) + L_{{g}}{\psi _1}(\mathbf{x}^i){\mathbf{u}} + {\chi _2}({\psi _1}(\mathbf{x}^i)) \ge 0
+	\end{equation}
+	Then, the following holds:
+	
+	1) $\mathbf{u}_i$ has the following closed-form expression
+	\begin{equation}
+		\label{ai_as}
+		\mathbf{u}_i = \mathbf{u}_{\mathrm{norm}} + \mathbf{u}_s
+	\end{equation}
+	where $\Psi = L_{{g}}{\psi _1} \mathbf{u}_{\mathrm{norm}} + L_{{f}}{\psi _1} + {\chi _2}({\psi _1})$. If $\Psi \ge 0$, $\mathbf{u}_s = \mathbf{0}$; if $\Psi < 0$, $\mathbf{u}_s = -\frac{\Psi}{\|L_{g}{\psi _1}\|^2} L_{g}{\psi _1}^T$.
+	
+	2) The resulting guidance law $\mathbf{u}_i$ guarantees avoidance of the generalized 3D obstacle defined by $h(\mathbf{x}^i)$.
+	
+	3) $\mathbf{u}_i$ is Lipschitz continuous.
+\end{theorem}
+
+\textit{Proof:} We divide the proof into three parts. For brevity, the state argument $(\mathbf{x}^i)$ is occasionally omitted.
+
+1) Let us prove the closed-form expression using the Karush-Kuhn-Tucker (KKT) conditions. The Lagrangian for this problem is formulated as:
+\begin{equation}
+	\mathcal{L}(\mathbf{u}, \lambda) = \frac{1}{2} \| \mathbf{u} - \mathbf{u}_{\mathrm{norm}} \|^2 - \lambda \left(L_{{g}}{\psi _1} {\mathbf{u}} + L_{{f}}{\psi _1} + {\chi _2}({\psi _1}) \right) 
+\end{equation}
+where $\lambda \ge 0$ is the KKT multiplier corresponding to the safety inequality constraint. 
+
+The stationarity condition by the KKT conditions is calculated as
+\begin{equation}
+	\frac{\partial \mathcal{L}}{\partial {\mathbf{u}}} = {\mathbf{u}} - \mathbf{u}_{\mathrm{norm}} - \lambda L_{{g}}{\psi _1}^T = \mathbf{0} \implies {\mathbf{u}} = \mathbf{u}_{\mathrm{norm}} + \lambda L_{{g}}{\psi _1}^T
+\end{equation}
+Substituting this optimal control expression into the inequality constraint \eqref{constraints} yields
+\begin{equation}
+	L_{{g}}{\psi _1} \left(\mathbf{u}_{\mathrm{norm}} + \lambda L_{{g}}{\psi _1}^T\right) + L_{{f}}{\psi _1} + {\chi _2}({\psi _1}) \ge 0
+\end{equation}
+Rearranging the terms and substituting the definition of $\Psi$ yields
+\begin{equation}
+	\lambda \|L_{{g}}{\psi _1}\|^2 \ge -\Psi
+\end{equation}
+To minimize the deviation from the nominal command, we select the minimum non-negative value for $\lambda$. Thus, $\lambda = \frac{-\min\{\Psi, 0\}}{\|L_{{g}}{\psi _1}\|^2}$. Substituting $\lambda$ back into the control expression concludes the proof of the closed-form optimal guidance law:
+\begin{equation}
+	\mathbf{u}_i = \mathbf{u}_{\mathrm{norm}} - \frac{\min\{\Psi, 0\}}{\|L_{{g}}{\psi _1}\|^2} L_{{g}}{\psi _1}^T
+\end{equation}
+
+2) Take the time derivative of $\psi_1(\mathbf{x}^i)$:
+\begin{equation}
+	\begin{split}
+		\dot{\psi}_1(\mathbf{x}^i) & = L_{{f}}{\psi _1} + L_{{g}}{\psi _1}(\mathbf{u}_{\mathrm{norm}} + \mathbf{u}_s) \\
+		& = L_{{f}}{\psi _1} + L_{{g}}{\psi _1}\mathbf{u}_{\mathrm{norm}} - \min\{\Psi, 0\}
+	\end{split}
+\end{equation}
+If $\Psi \ge 0$, then $\mathbf{u}_s = \mathbf{0}$, which directly implies $\dot{\psi}_1(\mathbf{x}^i) \ge -{\chi _2}({\psi _1}(\mathbf{x}^i))$. 
+If $\Psi < 0$, then $-\min\{\Psi, 0\} = -\Psi$, and substituting $\Psi$ gives:
+\begin{equation}
+	\dot{\psi}_1(\mathbf{x}^i) = L_{{f}}{\psi _1} + L_{{g}}{\psi _1}\mathbf{u}_{\mathrm{norm}} - \Psi  = -{\chi _2}({\psi _1}(\mathbf{x}^i))
+\end{equation}
+In both cases, $\dot{\psi}_1 \ge -{\chi _2}({\psi _1})$ is satisfied, leading to the forward invariance of $\psi_1(\mathbf{x}^i)$, i.e., ${\psi _1}(\mathbf{x}^i) \ge 0, \ \forall \mathbf{x}^i \in \mathcal{S}$. Because ${\psi _1}(\mathbf{x}^i) = {\dot{\psi} _0}(\mathbf{x}^i) + {\chi _1}({\psi _0}(\mathbf{x}^i))$ and $\psi_0(\mathbf{x}^i) = h(\mathbf{x}^i)$, it yields
+\begin{equation}
+	\dot{h}(\mathbf{x}^i) + {\chi _1}(h(\mathbf{x}^i)) \ge 0
+\end{equation}
+This establishes the forward invariance of the barrier function $h(\mathbf{x}^i) \ge 0, \ \forall \mathbf{x}^i \in \mathcal{S}$, thereby effectively preventing collisions with the generalized 3D obstacle.
+
+3) Based on Property 1, the functions $f(\mathbf{x}^i)$ and $g(\mathbf{x}^i)$ are locally Lipschitz continuous. Due to the quadratic differentiability of $h(\mathbf{x}^i)$, $\dot{h}(\mathbf{x}^i)$ and ${\psi _1}(\mathbf{x}^i)$ retain Lipschitz continuity. Along with the continuous nature of the nominal cooperative guidance law $\mathbf{u}_{\mathrm{norm}}$, $\Psi$ is locally Lipschitz continuous. Since the $\min$ operator and $\mathbf{u}_s$ are continuous with respect to their arguments, the resulting bounded control $\mathbf{u}_i$ is locally Lipschitz continuous on $\mathcal{X}$. \hfill $\blacksquare$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\vspace{1mm}
+\begin{remark}
+The HO-CBF acts as a dynamic safety mechanism evaluating both spatial distance and relative velocity. The condition $\psi_1 = \dot{h} + {\chi_1}(h) \ge 0$ allows the missile to approach the obstacle ($\dot{h} < 0$) only if its speed is strictly bounded by the remaining safety margin ${\chi_1}(h)$, ensuring sufficient room to decelerate or maneuver. As the missile nears the boundary ($h \to 0$), this allowable speed decays to zero, smoothly enforcing collision avoidance ($\dot{h} \ge 0$). Thus, the HO-CBF functions as a predictive safety filter that proactively restricts motion to ensure safety. Furthermore, it minimizes deviations from the nominal guidance, modifying the commands only when necessary, and completely recovers the original guidance law when obstacle avoidance is no longer required.
+\end{remark}
+\vspace{1mm}
+
+To further enhance the resilience and safety of the swarm during spatial maneuvering, a distance-dependent elastic control mechanism is introduced to dynamically adjust the cooperative bias term. While the HO-CBF projection guarantees rigorous safety, the cooperative term $\mathbf{A}_i^{\mathrm{BT}}$ may command accelerations that conflict with the obstacle avoidance objective when the missile operates in close proximity to the obstacle. To prevent excessive control saturation and alleviate the chattering effect during the transition, an elastic weight factor $\phi_i(r_{oi})$ is designed to suppress the cooperative effort as the missile enters a predefined warning zone.
+%此时由于避障指令的存在，所以协同项已经不准了，这也是此时引入弹性因子的原因
+The spatial elastic factor is formulated as
+\begin{equation}
+	\label{eq:spatial_elastic_factor}
+	\phi _i(r_{o}) = \begin{cases}
+		1, & r_{o} \ge \varpi R \\
+		\cos^n \left( \frac{\pi}{2} \frac{\bar{r}_{o} - \varpi}{1 - \varpi} \right), & r_{o} < \varpi R
+	\end{cases}
+\end{equation}
+where $R$ denotes the obstacle boundary radius (corresponding to $r_{ob}$), and $\varpi > 1$ represents the obstacle safety factor defining the warning boundary. The normalized relative distance is defined as $\bar{r}_{oi} = \frac{r_{oi}}{R}$, and $n \ge 1$ is a tunable design parameter controlling the smoothness of the transition.
+\vspace{1mm}
+\begin{remark}
+	The physical mechanism of $\phi_i(r_{oi})$ provides a smooth operational transition between cooperative engagement and independent obstacle avoidance. When the missile is safely far from the obstacle ($r_{oi} \ge \varpi R$), $\phi_i = 1$, and the nominal cooperative guidance law is fully executed. Once the missile breaches the warning boundary ($r_{oi} < \varpi R$), the elastic factor $\phi_i$ smoothly decays from $1$ to $0$. Consequently, the cooperative bias term is progressively unloaded. This allows the missile to temporarily prioritize the HO-CBF guided obstacle avoidance maneuvering over the time-to-go consensus. After successfully bypassing the obstacle ($r_{oi}$ increases beyond $\varpi R$), the cooperative term is restored smoothly to eliminate the residual synchronization error.
+\end{remark}
+\vspace{1mm}
+
+In summary, considering both the observation uncertainty under DoS attacks and the spatial obstacle avoidance constraints, the resilient guidance command $\boldsymbol A_i$ can be expressed as
+\begin{equation}
+	\label{eq:fully_resilient}
+	\boldsymbol A_i = \boldsymbol{A}_i^{\mathrm{PNG}} + \psi_i(t, E_i) \phi_i(r_{oi}) \boldsymbol{A}_i^{\mathrm{BT}} + \boldsymbol{A}_s
+\end{equation}
+where $\psi_i(t, E_i)$ accommodates communication resilience against DoS attacks, and $\phi_i(r_{oi})$ ensures spatial safety elasticity during physical obstacle avoidance.
+
+\section{Simulation Results}
+This section demonstrates the effectiveness of the proposed resilient cooperative guidance law under both DoS attacks and physical obstacle constraints. Assume that there are four missiles intercepting a stationary target located at the origin in the 3D space. In
+this group of simulations, the parameters， $N = 4$, $\alpha = \beta = 20$, $p = 0.8$, $q = 1.2$, $m = 1.5$, $\mu = 0.3$, and $\nu = 0.7$ are used. The initial conditions of the missiles are given in Table 1. Furthermore the simulation stops when the relative range to the target falls below 1 m.%要补充四个导弹的仿真工况
+\subsection{Resilient Cooperative Guidance Under Asynchronous DoS Attacks}
+\label{Dossim}
+This subsection evaluates the proposed resilient cooperative guidance law under multi-channel asynchronous DoS attacks. For the distributed observer, we set the prescribed convergence time $T_{obs} = 10$ and convergence parameter $m = 2$. The initial directed communication topology among the missiles is shown in Fig. X(a). When DoS attacks independently compromise different channels, the network degrades into various possible partial topologies, as illustrated in Figs. X(b)-(d). Specifically, the distributed DoS attack sequences applied to each channel are depicted in Fig. Y, which are generated according to the constraints defined in Assumptions 1 and 2.
+\begin{table}[htbp]
+	\centering
+	\caption{Initial conditions of the missiles.}
+	\label{tab:initial_conditions}
+	\begin{tabular}{ 
+			>{\centering\arraybackslash}p{0.7cm} % 第1列: Missile
+			>{\centering\arraybackslash}p{1cm} % 第2列: R_i, km
+			>{\centering\arraybackslash}p{1cm} % 第3列: V_i, m/s
+			>{\centering\arraybackslash}p{0.8cm} % 第4列: \vartheta_i
+			>{\centering\arraybackslash}p{0.8cm} % 第5列: \varphi_i
+			>{\centering\arraybackslash}p{0.8cm} % 第6列: \theta_i
+			>{\centering\arraybackslash}p{0.8cm} % 第7列: \phi_i
+		}
+		\hline \hline
+		Missile & $R_i$, km & $V_i$, m/s & $\vartheta_i$, $^{\circ}$ & $\varphi_i$, $^{\circ}$ & $\theta_i$, $^{\circ}$ & $\phi_i$, $^{\circ}$ \\
+		\hline
+		1 & 15 & 330 & $-60$ & 20 & $-30$ & $-40$ \\
+		2 & 13 & 320 & $-45$ & 30 & $-10$ & $-20$\\
+		3 & 13 & 310 & $-30$ & 40 & 15 & 20\\
+		4 & 11 & 300 & $-10$ & 60 & 30 & 40 \\
+		\hline \hline
+	\end{tabular}
+\end{table}
+
+Under the identical DoS attack sequences depicted in Fig. Y, a comparative analysis is conducted between the guidance strategies with and without the proposed observer. First, Fig.  illustrates the performance of the baseline cooperative guidance law, which operates without the observer mechanism, under asynchronous DoS attacks. As shown, the intermittent communication blockages prevent the interceptors from continuously acquiring accurate neighbor states. Consequently, the calculated synchronization errors fail to reflect the true time-to-go disparities. This lack of information causes the cooperative bias term to generate erroneous acceleration commands, ultimately failing to synchronize the impact times.
+
+For comparison, Fig. presents the results of the proposed resilient cooperative guidance law under the same asynchronous DoS attacks. The state observation errors of the distributed observer are depicted in Fig. , and the history of the trust factor is shown in Fig. . As shown in the error profiles, the estimation errors successfully converge to zero within the pre-specified time $T_{obs}$, despite severe communication disruptions. When $t < T_{obs}$, the trust factor dynamically reduces the weight of the cooperative bias term to manage the high estimation uncertainty. This adjustment effectively prevents unnecessary maneuvers caused by inaccurate observation information. Once the distributed observer converges, the trust factor smoothly transitions to 1. This enables a seamless switch to the full cooperative guidance law. The convergence time of the time-to-go errors is less than $T_{obs} + T_{sync}$. The acceleration commands remain stable throughout the flight, ultimately achieving a successful simultaneous interception even under asynchronous DoS attacks.
+
+%=================== Figures Placement ===================
+%\begin{figure}[htbp]
+%	\centering
+%	\includegraphics[width=0.8\linewidth]{fig_topology.pdf}
+%	\caption{The communication network configurations: (a) the original ideal topology; (b) a degraded topology subjected to a DoS attack.}
+%	\label{fig:topology_example}
+%\end{figure}
+%
+%\begin{figure}[htbp]
+%	\centering
+%	\includegraphics[width=0.8\linewidth]{fig_dos_profile.pdf}
+%	\caption{The dynamic profiles of the asynchronous DoS attacks, illustrating the on-off states of different communication links over time.}
+%	\label{fig:dos_profile}
+%\end{figure}
+%
+%\begin{figure}[htbp]
+%	\centering
+%	\includegraphics[width=0.8\linewidth]{fig_conventional.pdf}
+%	\caption{The performance of the conventional cooperative guidance law under DoS attacks, showing significant divergence in the time-to-go profiles.}
+%	\label{fig:conventional_guidance}
+%\end{figure}
+%
+%\begin{figure}[htbp]
+%	\centering
+%	\includegraphics[width=0.8\linewidth]{fig_observer.pdf}
+%	\caption{The convergence profiles of the global state observation errors using the proposed distributed prescribed-time observer.}
+%	\label{fig:observer_convergence}
+%\end{figure}
+%
+%\begin{figure}[htbp]
+%	\centering
+%	\includegraphics[width=0.8\linewidth]{fig_resilient.pdf}
+%	\caption{The performance of the proposed resilient cooperative guidance law, showing successful time-to-go synchronization and stable acceleration commands.}
+%	\label{fig:resilient_guidance}
+%\end{figure}
+\subsection{Spatially Resilient Obstacle Avoidance Under Physical Occlusion}
+%这一部分放置避障弹性控制，物理阻断，无dos攻击
+This subsection considers a three-dimensional engagement scenario featuring stationary physical obstacles to evaluate the proposed resilient obstacle avoidance guidance law. Located in the three-dimensional space, the obstacles introduce a dual threat: they serve as strict no-fly zones posing collision risks, while simultaneously acting as physical barriers that dynamically sever the communication links among the missiles. Specifically, the simulation incorporates a spherical obstacle and a cylindrical obstacle. The spherical obstacle is centered at  with a radius of , whereas the central axis of the cylindrical obstacle is positioned at  with a radius of. The remaining simulation settings are identical to those detailed in Section \ref{Dossim}.
+
+Figs. (a) and (b) demonstrate that the proposed resilient obstacle avoidance guidance law successfully intercepts the stationary target while executing smooth evasion maneuvers, validating the spatial resilience of the proposed architecture against physical constraints and occlusions. This performance remains consistent with the theoretical derivation, even under communication disruptions induced by the physical obstacles. Fig. [Insert Figure Number] illustrates the relative distances $r_{oi}$ between the interceptors and the obstacles. Because the nominal guidance commands are safely projected into the allowable control set, the relative distances strictly satisfy the safety constraint $r_{oi} \ge R$ throughout the entire flight. The spatial elastic factor $\phi_i(r_{oi})$ depicted in Fig.  demonstrates that as the missile breaches the predefined boundary $\varpi R$, the elastic factor smoothly decays, resulting in a corresponding reduction in the weight of the cooperative bias term. This elastic weight adjustment enables the missile to focus entirely on the obstacle evasion maneuver, thereby avoiding inaccurate cooperative control.
+
+\subsection{Comprehensive Simulation}
+
+This subsection considers a worst-case engagement scenario featuring both stationary physical obstacles and multi-channel asynchronous DoS attacks. This setup evaluates the comprehensive resilience of the proposed architecture under simultaneous cyber and physical disruptions. In this combined environment, the obstacles serve as strict no-fly zones. Meanwhile, the communication network suffers from severe dynamic degradation caused by both malicious cyber interventions and physical LOS occlusions.
+
+The simulation results verify the effectiveness of the dual-factor regulation mechanism under these extreme conditions. As shown in Fig. , the HO-CBF mechanism ensures absolute collision avoidance by maintaining the relative distance $r_{oi} \ge R$. Fig. illustrates that the global observation errors successfully converge to zero within the pre-specified time $T_{obs}$, despite severe communication intermittency. The dynamic profiles of the coordinated factor adjustments are shown in Fig. . Specifically, the trust factor $\psi_i$ reduces the cooperative weight to manage cyber-induced estimation uncertainties, while the spatial elastic factor $\phi_i$ further attenuates the cooperative control commands near the obstacles to prevent inaccurate cooperative maneuvers. Once the obstacles are bypassed and the observer converges, both factors smoothly return to 1. Consequently, the guidance law rapidly eliminates the accumulated synchronization errors, enabling the missiles to achieve successful simultaneous interception.
+
+\section{Conclusion}
+
+
+
+
+
+
+
+\bibliographystyle{IEEEtran}
+\bibliography{REFERENCES}
+\end{document}
+
+
