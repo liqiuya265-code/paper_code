@@ -32,7 +32,7 @@ end
 
 % 计算增益项：kappa(t) * mu^(1+m)(t)
  if t<T*0.99
-gain = kappa_t ^(1 + m1);
+    gain = kappa_t ^(1 + m1);
  else
     gain=2;
  end

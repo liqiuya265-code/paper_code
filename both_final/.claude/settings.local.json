@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(matlab -batch \"test_mc_quick\")",
+      "Bash(matlab -nosplash -nodesktop -noFigureWindows -batch ':*)",
+      "Bash(matlab -nosplash -nodesktop -noFigureWindows -batch \"run_monte_carlo\")"
+    ]
+  }
+}

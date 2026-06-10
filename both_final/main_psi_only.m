@@ -197,7 +197,7 @@ for i=1:length(t)
         else
             last_psi_i(j) = psi_i;  % 更新最近的 psi_i
         end
-        omega_2i=psi_i*phi_i;  % 避障：复合权重包含环境安全因子
+        omega_2i=psi_i;  % 仅信息可信因子 psi
         % 记录权重日志: 包含避障相关的 F_i, phi_i
         % （F_i 在避障检测后更新，此处先记录占位值）
         % 基础PNG加速度（名义控制）
@@ -236,10 +236,10 @@ for i=1:length(t)
             if i==1
 
                 [Ay_obs, Az_obs,last_psi_i_obs{i}] = compute_control_from_observer(t(i), z_observer, a_now, a_base, ...
-                    Vm', N, M, T, sigma_max, alpha, beta, p, q, m, miu, v, n, obs, omega_env_i, n_env, lambda_info, x,zeros(M, M), 'both');
+                    Vm', N, M, T, sigma_max, alpha, beta, p, q, m, miu, v, n, obs, omega_env_i, n_env, lambda_info, x,zeros(M, M), 'psi');
             else
                 [Ay_obs, Az_obs,last_psi_i_obs{i}] = compute_control_from_observer(t(i), z_observer, a_now, a_base, ...
-                    Vm', N, M, T, sigma_max, alpha, beta, p, q, m, miu, v, n, obs, omega_env_i, n_env, lambda_info, x,last_psi_i_obs{i-1}, 'both');
+                    Vm', N, M, T, sigma_max, alpha, beta, p, q, m, miu, v, n, obs, omega_env_i, n_env, lambda_info, x,last_psi_i_obs{i-1}, 'psi');
             end
 
             z_observer = observer_RK4(t(i), z_observer, a_now, kappa_observer, mu_observer, m1, ...
@@ -504,4 +504,35 @@ sgtitle('Multi-channel Asynchronous DoS Attack Timeline', ...
 set(findall(gcf, '-property', 'FontName'), 'FontName', 'Times New Roman');
 
 % 保存控制量数据用于控制量对比
-save('control_effort_both.mat', 'Ay', 'Az', 't');
+save('control_effort_psi_only.mat', 'Ay', 'Az', 't');
+
+% ===== 累积控制量 (Control Effort) 绘图 =====
+len_acc = size(Ay, 1);
+t_plot_acc = t(1:len_acc);
+cum_effort = zeros(len_acc, M);
+for j = 1:M
+    for k = 1:len_acc
+        effort = Ay(k, j)^2 + Az(k, j)^2;
+        if k == 1
+            cum_effort(k, j) = effort * dt;
+        else
+            cum_effort(k, j) = cum_effort(k-1, j) + effort * dt;
+        end
+    end
+end
+
+figure(10)
+set(gcf, 'Position', [100, 100, 800, 600]);
+hold on;
+colors = lines(M);
+for j = 1:M
+    plot(t_plot_acc, cum_effort(:, j), 'LineWidth', 2, 'Color', colors(j,:), ...
+        'DisplayName', ['Missile ', num2str(j)]);
+end
+xlabel('$t$ (s)', 'FontSize', 12, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
+ylabel('$\int_{0}^{t} \|A\|^2\, \mathrm{d}\tau\ \mathrm{(m^2/s^3)}$', 'FontSize', 12, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
+title('Cumulative Control Effort ($\psi$ only: $\omega_{2i}=\psi_i$)', 'FontSize', 14, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
+legend('Location', 'best', 'FontSize', 10);
+grid on;
+hold off;
+set(findall(gcf, '-property', 'FontName'), 'FontName', 'Times New Roman');

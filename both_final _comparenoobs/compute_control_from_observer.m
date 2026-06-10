@@ -1,6 +1,7 @@
 function [Ay_obs, Az_obs,last_psi_i] = compute_control_from_observer(t, z_observer, a_now, a_base,Vm, N, M, T, ...
-    sigma_max, alpha, beta, p, q, m, miu, v, n, obs, omega_env, n_env, lambda_info, x, last_psi_i)
+    sigma_max, alpha, beta, p, q, m, miu, v, n, obs, omega_env, n_env, lambda_info, x, last_psi_i, use_resilience)
 % 基于观测状态 z_observer 计算控制输入 Ay 和 Az（使用权重分配）
+%   use_resilience - 可选，是否使用弹性因子 omega_2i（默认 true）
 % 输入：
 %   t - 当前时间
 %   z_observer - 观测状态 (M x M*5)，每行 z_observer(i, :) 表示第 i 个导弹对所有导弹的全局观测
@@ -17,6 +18,10 @@ function [Ay_obs, Az_obs,last_psi_i] = compute_control_from_observer(t, z_observ
 % 输出：
 %   Ay_obs - 基于观测状态计算的Ay控制输入 (M x 1)
 %   Az_obs - 基于观测状态计算的Az控制输入 (M x 1)
+
+if nargin < 24
+    use_resilience = true;
+end
 
 Ay_obs = zeros(M, 1);
 Az_obs = zeros(M, 1);
@@ -85,7 +90,11 @@ for j = 1:M
         end
         % 注意：在观测器控制计算中，我们直接使用计算结果，不使用历史值
 
-        omega_2i = psi_i * phi_i;
+        if use_resilience
+            omega_2i = psi_i * phi_i;
+        else
+            omega_2i = 1;
+        end
 
         % 从第 j 个导弹对自己（第 j 个导弹）的观测中提取状态变量
         R_ItoL = [cos(theta_L_obs(j,k))*cos(psi_L_obs(j,k)),   cos(theta_L_obs(j,k))*sin(psi_L_obs(j,k)),   -sin(theta_L_obs(j,k));

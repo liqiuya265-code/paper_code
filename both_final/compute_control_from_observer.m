@@ -1,5 +1,5 @@
 function [Ay_obs, Az_obs,last_psi_i] = compute_control_from_observer(t, z_observer, a_now, a_base,Vm, N, M, T, ...
-    sigma_max, alpha, beta, p, q, m, miu, v, n, obs, omega_env_i, n_env, lambda_info, x, last_psi_i)
+    sigma_max, alpha, beta, p, q, m, miu, v, n, obs, omega_env_i, n_env, lambda_info, x, last_psi_i, resilience_mode)
 % 基于观测状态 z_observer 计算控制输入 Ay 和 Az（使用权重分配）
 % 输入：
 %   t - 当前时间
@@ -14,9 +14,14 @@ function [Ay_obs, Az_obs,last_psi_i] = compute_control_from_observer(t, z_observ
 %   obs - 障碍物对象
 %   kappa_env, lambda_info, d_crit - 权重分配参数
 %   x - 真实状态向量
+%   resilience_mode - 弹性因子模式: 'both'(默认), 'psi', 'phi', 'none'
 % 输出：
 %   Ay_obs - 基于观测状态计算的Ay控制输入 (M x 1)
 %   Az_obs - 基于观测状态计算的Az控制输入 (M x 1)
+
+if nargin < 25 || isempty(resilience_mode)
+    resilience_mode = 'both';
+end
 
 Ay_obs = zeros(M, 1);
 Az_obs = zeros(M, 1);
@@ -82,9 +87,19 @@ for j = 1:M
         else
             last_psi_i(j,k) = psi_i;  % 更新最近的 psi_i
         end
-        % 注意：在观测器控制计算中，我们直接使用计算结果，不使用历史值
-
-        omega_2i = psi_i * phi_i;
+        % 根据弹性因子模式计算 omega_2i
+        switch resilience_mode
+            case 'both'
+                omega_2i = psi_i * phi_i;
+            case 'psi'
+                omega_2i = psi_i;
+            case 'phi'
+                omega_2i = phi_i;
+            case 'none'
+                omega_2i = 1;
+            otherwise
+                omega_2i = psi_i * phi_i;
+        end
 
         % 从第 j 个导弹对自己（第 j 个导弹）的观测中提取状态变量
         R_ItoL = [cos(theta_L_obs(j,k))*cos(psi_L_obs(j,k)),   cos(theta_L_obs(j,k))*sin(psi_L_obs(j,k)),   -sin(theta_L_obs(j,k));

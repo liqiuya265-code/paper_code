@@ -16,97 +16,82 @@ v=0.7;
 n=3;
 m1=0.5;
 varpi=2;
-% 纯DoS场景：不考虑障碍物，仅保留信息可信因子 psi
-lambda_info = 0.0008; % 信息可信因子衰减参数 λ
-obs = obstacles(1, 1, 1); % 保留对象接口，纯DoS下不添加任何障碍物
+% 无弹性因子场景：观测器保留，但不引入信息可信因子 psi 的权重调制（omega_2i=1）
+lambda_info = 0.0008;
+obs = obstacles(1, 1, 1);
 
 % 通信拓扑（未受攻击前）
 a_base=[1,1,0,1;1,1,1,0;0,1,1,1;1,0,1,1];
 a_now=[1,1,0,1;1,1,1,0;0,1,1,1;1,0,1,1];
-% DoS 参数：|D_{ij}(t0,t)| <= zeta_ij + mu_ij*(t-t0)
-% 其中 mu_ij 为占空比上限（每秒允许的最大中断占比），需在 [0,1] 之间
-zeta_ij=1*ones(M);      % 基础脉冲上界（秒）
-mu_ij=0.52*ones(M);       % 占空比上限（秒/秒），示例设置为 50%
-% DoS 频率约束：|F_{ij}(t0,t)| <= kappa_ij + (t-t0)/nu_ij
-% nu_ij > 1 表示平均停留时间（连续DoS事件之间的最小时间间隔）
-% kappa_ij > 0 表示干扰边界（DoS事件的初始数量）
-kappa_ij=2*ones(M);       % 干扰边界，示例设置为 2
-nu_ij=5*ones(M);         % 平均停留时间（秒），示例设置为 5秒，需满足 nu_ij > 1
-attack_prob=0.1*ones(M); % 每个时间步的攻击触发概率（有余量才可触发）
-dos_downtime=zeros(M);     % 累计中断时长
-dos_active=zeros(M);       % 当前攻击状态标记
-dos_event_count=zeros(M);  % DoS事件发生次数
-dos_last_event_time=zeros(M); % 上次DoS事件发生的时间
-t0=0;                      % 攻击起始计时
-rng(1);                    % 固定随机种子便于复现实验
+% DoS 参数
+zeta_ij=1*ones(M);
+mu_ij=0.52*ones(M);
+kappa_ij=2*ones(M);
+nu_ij=5*ones(M);
+attack_prob=0.1*ones(M);
+dos_downtime=zeros(M);
+dos_active=zeros(M);
+dos_event_count=zeros(M);
+dos_last_event_time=zeros(M);
+t0=0;
+rng(1);
 load('dos_scenario.mat', 'a_log', 'dos_downtime_log', 'dos_active_log', 'dos_event_count_log');
 x=[12500,-45*pi/180,45*pi/180,30*pi/180,-30*pi/180,12000,-15*pi/180,30*pi/180,...
     30*pi/180,30*pi/180,11000,-45*pi/180,45*pi/180,30*pi/180,15*pi/180,11500,-30*pi/180,50*pi/180,30*pi/180,-30*pi/180];
 
 % 初始化分布式全局状态观测器
-% 观测状态 z_observer: (M x M*5) = (4 x 20) 矩阵
-% 每行 z_observer(i, :) 表示第 i 个导弹对所有导弹（包括自己）的全局观测值
-% z_observer(i, 5*(j-1)+1:5*j) 表示第 i 个导弹对第 j 个导弹的观测
 z_observer = zeros(M, M*5);
-% 设置初始偏差（可以调整偏差大小）
-initial_bias_r = 500;  % 距离偏差 (m)
-initial_bias_angle = 5*pi/180;  % 角度偏差 (rad)
+initial_bias_r = 500;
+initial_bias_angle = 5*pi/180;
 
-for i = 1:M  % 第 i 个导弹
-    for j = 1:M  % 对第 j 个导弹的观测
+for i = 1:M
+    for j = 1:M
         if i == j
-            % 导弹对自己的观测值等于真实状态值
             z_observer(i, (5*(j-1)+1):5*j) = x((5*(j-1))+1:5*j);
         else
-            % 对其他导弹的观测值有初始偏差
-            z_observer(i, 5*(j-1)+1) = x(5*(j-1)+1) + randi([100, 1000]);  % r: 距离
-            z_observer(i, 5*(j-1)+2) = x(5*(j-1)+2) + (randi([1, 10]) * pi/180);  % theta_L: 俯仰角
-            z_observer(i, 5*(j-1)+3) = x(5*(j-1)+3) + (randi([1, 10]) * pi/180);  % psi_L: 偏航角
-            z_observer(i, 5*(j-1)+4) = x(5*(j-1)+4) + (randi([1, 10]) * pi/180);  % theta: 俯仰角速度相关
-            z_observer(i, 5*(j-1)+5) = x(5*(j-1)+5) + (randi([1, 10]) * pi/180);  % psi: 偏航角速度相关
+            z_observer(i, 5*(j-1)+1) = x(5*(j-1)+1) + randi([100, 1000]);
+            z_observer(i, 5*(j-1)+2) = x(5*(j-1)+2) + (randi([1, 10]) * pi/180);
+            z_observer(i, 5*(j-1)+3) = x(5*(j-1)+3) + (randi([1, 10]) * pi/180);
+            z_observer(i, 5*(j-1)+4) = x(5*(j-1)+4) + (randi([1, 10]) * pi/180);
+            z_observer(i, 5*(j-1)+5) = x(5*(j-1)+5) + (randi([1, 10]) * pi/180);
         end
     end
 end
-z_observer_log = reshape(z_observer', 1, M*M*5);  % 保存观测器状态历史（行向量格式）
+z_observer_log = reshape(z_observer', 1, M*M*5);
 
-% kappa(t) 函数：kappa(t) = kappa_1 / [T_safe - Σt_c(t0,t)]^m
-% 其中 Σt_c 是累计网络断联时间（rank_L ~= N-1 的累计时间）
-T_safe = 5;  % 安全时间参数
-kappa_1 = 1;  % kappa 的系数，可根据需要调整
+% kappa(t) 函数
+T_safe = 5;
+kappa_1 = 1;
 
-% mu(t) 函数：mu(t; t0, T) = T / (T + t0 - t)
-T = 10;  % 时间参数 T（秒），可根据需要调整
+% mu(t) 函数
+T = 10;
 
 % 初始化累计网络断联时间
-cumulative_disconnect_time = 0;  % 累计网络断联时间 Σt_c
+cumulative_disconnect_time = 0;
 
 x_state=x;
-% DoS攻击记录从 dos_scenario.mat 加载，无需重新初始化
-rank_L_log = zeros(length(t), 1);  % 记录拉普拉斯矩阵的秩
+rank_L_log = zeros(length(t), 1);
 
 % 初始化权重日志记录
 weights_log = zeros(length(t), M, 4);  % [F_i, omega_2i, phi_i, psi_i]
 observer_weights_log = zeros(length(t), M, 2);  % [F_i_obs, omega_2i_obs]
-cumulative_disconnect_time_log = zeros(length(t), 1);  % 记录累计断联时间
+cumulative_disconnect_time_log = zeros(length(t), 1);
 
-% 初始化最近的 psi_i 值记录（用于无连接时的回退）
-last_psi_i = zeros(M, 1);  % 初始化为0.5
+% 初始化最近的 psi_i 值记录
+last_psi_i = zeros(M, 1);
 
 for i=1:length(t)
-    % 从预生成的DoS场景加载当前步的通信拓扑
     a_now = squeeze(a_log(i,:,:));
-    % 记录DoS攻击状态（从预加载数据读取）
     dos_downtime = squeeze(dos_downtime_log(i,:,:));
     dos_active = squeeze(dos_active_log(i,:,:));
     dos_event_count = squeeze(dos_event_count_log(i,:,:));
 
-    tgo_matrix = zeros(M, M);  % tgo_matrix(i, j) 表示导弹 i 计算导弹 j 的 tgo
-    sigma_matrix = zeros(M, M);  % sigma_matrix(i, j) 表示导弹 i 计算导弹 j 的 sigma
+    tgo_matrix = zeros(M, M);
+    sigma_matrix = zeros(M, M);
 
-    for i_missile = 1:M  % 第 i_missile 个导弹
-        for j_missile = 1:M  % 对第 j_missile 个导弹的 tgo
+    for i_missile = 1:M
+        for j_missile = 1:M
             if  a_base(i_missile, j_missile) == 1 && a_now(i_missile, j_missile) == 0
-                % t > T 且链路断开：使用 i_missile 对 j_missile 的观测状态计算 tgo
                 r_obs = z_observer(i_missile, 5*(j_missile-1)+1);
                 theta_obs = z_observer(i_missile, 5*(j_missile-1)+4);
                 psi_obs = z_observer(i_missile, 5*(j_missile-1)+5);
@@ -127,8 +112,6 @@ for i=1:length(t)
 
     for j=1:M
         epsilon(i,j)=Epsilon(tgo_matrix(j,:),a_base,j);
-        % 计算偏置项
-        % 检查是否有与 j 断开的链路，决定使用真实状态还是观测状态
         has_disconnected = false;
         for k = 1:M
             if k ~= j && a_base(j, k) == 1 && a_now(j, k) == 0
@@ -155,9 +138,8 @@ for i=1:length(t)
     L = compute_laplacian(a_now);
     rank_L = rank(L);
     rank_L_log(i) = rank_L;
-    % 累计网络断联时间（当 rank_L ~= N-1 时，图不连通）
     if rank_L < N-1
-        cumulative_disconnect_time = cumulative_disconnect_time + dt;  % 累计断联时间
+        cumulative_disconnect_time = cumulative_disconnect_time + dt;
     end
     cumulative_disconnect_time_log(i) = cumulative_disconnect_time;
     kappa_observer =1/(T_safe-cumulative_disconnect_time);
@@ -170,24 +152,23 @@ for i=1:length(t)
             sin(x(5*(j-1)+4))*cos(x(5*(j-1)+5)), sin(x(5*(j-1)+4))*sin(x(5*(j-1)+5)),   cos(x(5*(j-1)+4))];
         R_VtoL = R_LtoV';
         R_LtoI = R_ItoL';
-        % 计算信息可信因子 ψ_i（带低通滤波平滑）
+        % 计算信息可信因子 ψ_i（仅用于日志记录，不用于控制调制）
         [psi_i, has_connections] = information_credibility_factor(z_observer, x, a_now, j, lambda_info, last_psi_i(j), 0.3);
         if ~has_connections
-            psi_i = last_psi_i(j);  % 使用最近有连接时刻的 psi_i
+            psi_i = last_psi_i(j);
         else
-            last_psi_i(j) = psi_i;  % 更新最近的 psi_i
+            last_psi_i(j) = psi_i;
         end
-        phi_i = 1;  % 固定环境安全因子
-        omega_2i = psi_i * phi_i;
-        % 记录权重日志: F_i=0
+        phi_i = 1;
+        omega_2i = 1;  % 无弹性因子：偏置项以满强度施加
+        % 记录权重日志
         weights_log(i, j, :) = [0, omega_2i, phi_i, psi_i];
-        % 基础PNG加速度（名义控制）
+        % 基础PNG加速度（名义控制，无弹性因子调制）
         Ay_png = -N*Vm(j)^2*sin(x(5*(j-1)+5))/x(5*(j-1)+1)-omega_2i*Aybt(i,j);
         Az_png = -N*Vm(j)^2*sin(x(5*(j-1)+4))*cos(x(5*(j-1)+5))/x(5*(j-1)+1)-omega_2i*Azbt(i,j);
 
         % 名义控制输入矢量 a_N
         a_N = R_LtoI * R_VtoL * [0; Ay_png; Az_png];
-        % 纯DoS场景下不考虑障碍物控制项
         a_S=[0;0;0];
         A = a_N+a_S;
 
@@ -195,12 +176,7 @@ for i=1:length(t)
         A_V(i,j,:)=R_LtoV*R_ItoL*A;
         Ay(i,j)=A_V(i,j,2);
         Az(i,j)=A_V(i,j,3);
-        % if abs(Ay(i,j))>1000
-        %     Ay(i,j)=sign(Ay(i,j))*1000;
-        % end
-        % if abs(Az(i,j))>1000
-        %     Az(i,j)=sign(Az(i,j))*1000;
-        % end
+
         x(5*(j-1)+1:5*(j-1)+5)=RK4(i,x(5*(j-1)+1:5*(j-1)+5)',Ay(i,j),Az(i,j),dt,Vm(j));
         X(i,j)=-x(5*(j-1)+1).*cos(x(5*(j-1)+2)).*cos(x(5*(j-1)+3));
         Y(i,j)=-x(5*(j-1)+1).*cos(x(5*(j-1)+2)).*sin(x(5*(j-1)+3));
@@ -212,10 +188,10 @@ for i=1:length(t)
             if i==1
 
                 [Ay_obs, Az_obs,last_psi_i_obs{i}] = compute_control_from_observer(t(i), z_observer, a_now, a_base, ...
-                    Vm', N, M, T, sigma_max, alpha, beta, p, q, m, miu, v, n, obs, 1, 1, lambda_info, x,zeros(M, M));
+                    Vm', N, M, T, sigma_max, alpha, beta, p, q, m, miu, v, n, obs, 1, 1, lambda_info, x,zeros(M, M), false);
             else
                 [Ay_obs, Az_obs,last_psi_i_obs{i}] = compute_control_from_observer(t(i), z_observer, a_now, a_base, ...
-                    Vm', N, M, T, sigma_max, alpha, beta, p, q, m, miu, v, n, obs, 1, 1, lambda_info, x,last_psi_i_obs{i-1});
+                    Vm', N, M, T, sigma_max, alpha, beta, p, q, m, miu, v, n, obs, 1, 1, lambda_info, x,last_psi_i_obs{i-1}, false);
             end
 
             z_observer = observer_RK4(t(i), z_observer, a_now, kappa_observer, mu_observer, m1, ...
@@ -226,12 +202,12 @@ for i=1:length(t)
                 z_observer(i_obs, 5*(i_obs-1)+1:5*i_obs) = x(5*(i_obs-1)+1:5*i_obs);
             end
 
-            z_observer_log = [z_observer_log; reshape(z_observer', 1, M*M*5)]; %#ok<AGROW> 保存观测器状态
+            z_observer_log = [z_observer_log; reshape(z_observer', 1, M*M*5)]; %#ok<AGROW>
 
-            % 记录观测器权重日志
+            % 记录观测器权重日志（无弹性因子，omega_2i_obs=1）
             for i_obs = 1:M
                 [psi_i_obs, ~] = information_credibility_factor(z_observer, x, a_now, i_obs, lambda_info);
-                observer_weights_log(i, i_obs, :) = [0, psi_i_obs];  % F_i_obs=0, omega_2i_obs=psi_i_obs
+                observer_weights_log(i, i_obs, :) = [0, 1];  % omega_2i_obs=1 (no resilience)
             end
 
         end
@@ -244,7 +220,7 @@ for i=1:length(t)
     end
 end
 %%
-% 后处理：每个导弹到达目标后截断其数据（NaN 终止绘图）
+% 后处理：每个导弹到达目标后截断其数据
 for j = 1:M
     r_col = 5*(j-1) + 1;
     hit_idx = find(x_state(:, r_col) <= 0, 1, 'first');
@@ -261,7 +237,10 @@ for j = 1:M
     end
 end
 
-figure(1)
+% ===== 保存控制量数据用于对比 =====
+save('control_effort_no_res.mat', 'Ay', 'Az', 't');
+
+figure(11)
 plot3(X(:,1:4),Y(:,1:4),Z(:,1:4),'LineWidth',2,'LineStyle','-');
 set(gca, 'XDir', 'reverse');
 set(gca, 'YDir', 'reverse');
@@ -276,18 +255,18 @@ grid on;
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);
 
-% 统一时间长度，避免提前命中导致绘图维度不一致
-actual_steps = size(x_state, 1) - 1;  % 减去初始状态行
+% 统一时间长度
+actual_steps = size(x_state, 1) - 1;
 t_end = t(actual_steps);
 len_tgo = actual_steps;
 t_plot_tgo = t(1:len_tgo);
-len_state = size(x_state, 1);  % 含初始状态
+len_state = size(x_state, 1);
 t_plot_state = t(1:len_state);
 len_acc = actual_steps;
 t_plot_acc = t(1:len_acc);
 
-% 图2：tgo 与 R 合并图（2x1 排列）
-figure(2)
+% 图12：tgo 与 R 合并图
+figure(12)
 subplot(2,1,1)
 plot(t_plot_tgo, tgo(1:len_tgo,1:4), 'LineWidth', 2, 'LineStyle', '-');
 ylabel("t_{go}(s)")
@@ -305,8 +284,8 @@ xlim([0, t_end]);
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);
 
-% 图4：上图 Ay，下图 Az
-figure(4)
+% 图14：上图 Ay，下图 Az
+figure(14)
 subplot(2,1,1)
 plot(t_plot_acc, Ay(1:len_acc,1:4), 'LineWidth', 2, 'LineStyle', '-');
 xlabel("t(s)")
@@ -324,11 +303,11 @@ xlim([0, t_end]);
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);
 
-% 图5：观测器状态收敛图（1x4，每个子图对应一个观测导弹i，绘制5维状态误差范数）
+% 图15：观测器状态收敛图
 len_obs = min(size(x_state, 1), size(z_observer_log, 1));
 t_plot_obs = t(1:len_obs);
 roman_labels = {'i', 'ii', 'iii', 'iv'};
-figure(5)
+figure(15)
 for i_obs = 1:M
     subplot(4,1,i_obs)
     hold on;
@@ -349,7 +328,6 @@ for i_obs = 1:M
         end
     end
     ylabel("||e_{state}||_2")
-    % 标题移到子图下方，罗马数字编号
     text(0.5, 0.8, ['(', roman_labels{i_obs}, ') Missile ', num2str(i_obs), ' State Error Norm'], ...
         'Units', 'normalized', 'HorizontalAlignment', 'center', ...
         'FontSize', 12, 'FontName', 'Times New Roman', 'Clipping', 'off');
@@ -363,13 +341,12 @@ end
 
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);
-% 图5 legend 单独设为 12pt
 set(findall(gcf, 'Type', 'Legend'), 'FontSize', 12);
 
-% 图6：前置角（heading error）变化图
+% 图16：前置角变化图
 len_sigma = actual_steps;
 t_plot_sigma = t(1:len_sigma);
-figure(6)
+figure(16)
 hold on;
 sigma_deg = rad2deg(sigma(1:len_sigma,1:4));
 plot(t_plot_sigma, sigma_deg, 'LineWidth', 2);
@@ -381,10 +358,10 @@ hold off;
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);
 
-% 图7：信息可信因子 psi 变化图
+% 图17：信息可信因子 psi 变化图
 len_wt = actual_steps;
 t_plot_wt = t(1:len_wt);
-figure(7)
+figure(17)
 hold on;
 for midx = 1:M
     psi_vals = squeeze(weights_log(1:len_wt, midx, 4));
@@ -400,9 +377,7 @@ hold off;
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);
 
-% ===== 多通道异步DoS攻击示意图 =====
-% 统计所有存在的通信链路（排除自环）
-% 仅展示 4 条代表性链路
+% 图13：多通道异步DoS攻击示意图
 link_list_all = [1,2; 2,3; 3,4; 4,1];
 num_links_all = size(link_list_all, 1);
 link_labels_all = cell(num_links_all, 1);
@@ -410,28 +385,26 @@ for k = 1:num_links_all
     link_labels_all{k} = sprintf('(%d,%d)', link_list_all(k,1), link_list_all(k,2));
 end
 
-% 提取攻击状态矩阵: 行=时间步, 列=链路
 len_a = min(length(a_log), length(t));
 attack_matrix = zeros(len_a, num_links_all);
 for k = 1:num_links_all
     r = link_list_all(k, 1);
     c = link_list_all(k, 2);
     link_stat = squeeze(a_log(1:len_a, r, c));
-    attack_matrix(:, k) = (link_stat == 0);  % 1=被攻击(DoS), 0=正常(Safe)
+    attack_matrix(:, k) = (link_stat == 0);
 end
 t_plot_mc = t(1:len_a);
 
-figure(3)
+figure(13)
 set(gcf, 'Position', [100, 100, 750, 500]);
 
-% 每个链路一个子图，纵向堆叠，共享x轴，紧凑排列
 gap_val = 0.02;
 margin_bottom = 0.08;
 margin_top = 0.06;
 avail_h = 1 - margin_bottom - margin_top - (num_links_all-1)*gap_val;
 row_h = avail_h / num_links_all;
 
-colors_dos = lines(M);  % 与轨迹线颜色一致
+colors_dos = lines(M);
 
 for k = 1:num_links_all
     y_bottom = margin_bottom + (num_links_all-k)*(row_h + gap_val);
@@ -442,7 +415,6 @@ for k = 1:num_links_all
     yticks([0, 1]);
     yticklabels({'Safe', 'DoS'});
     xlim([0, t_plot_mc(end)]);
-    % 链路序号放在纵坐标左侧，无加粗
     ylabel(link_labels_all{k}, 'FontSize', 12, 'FontName', 'Times New Roman', ...
         'Rotation', 0, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle');
     if k < num_links_all
@@ -457,8 +429,8 @@ xlabel('t(s)', 'FontSize', 12, 'FontName', 'Times New Roman');
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);
 
-% 图8：图7 Trust Factor 统一图例（1×4，居中排列）
-figure(8)
+% 图18：图17 Trust Factor 统一图例
+figure(18)
 set(gcf, 'Position', [200, 420, 680, 130], 'Color', 'w');
 ax = axes('Position', [0 0 1 1], 'Visible', 'off', 'XLim', [0 1], 'YLim', [0 1]);
 hold on;
@@ -482,25 +454,25 @@ end
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 15);
 
-% 图9：累计网络断联时间
-figure(9)
+% 图19：累计网络断联时间
+figure(19)
 plot(t(1:actual_steps), cumulative_disconnect_time_log(1:actual_steps), 'b-', 'LineWidth', 2);
 xlabel('Time $t$ (s)', 'FontSize', 15, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
 ylabel('Cumulative Disconnect Time (s)', 'FontSize', 15, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
-title('Cumulative Network Disconnection Time $\Sigma t_c$', 'FontSize', 15, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
+title('Cumulative Network Disconnection Time $\Sigma t_c$ (No Resilience)', 'FontSize', 15, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
 xlim([0, t_end]);
 grid on;
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 15);
 
-% 图10：拉普拉斯矩阵秩
-figure(10)
+% 图20：拉普拉斯矩阵秩
+figure(20)
 hold on;
 plot(t(1:actual_steps), rank_L_log(1:actual_steps), 'b-', 'LineWidth', 2);
 yline(N-1, 'r--', 'LineWidth', 1.5, 'DisplayName', ['Threshold (N-1)=', num2str(N-1)]);
 xlabel('Time $t$ (s)', 'FontSize', 15, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
 ylabel('rank(L)', 'FontSize', 15, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
-title('Rank of Laplacian Matrix', 'FontSize', 15, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
+title('Rank of Laplacian Matrix (No Resilience)', 'FontSize', 15, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
 legend('rank(L)', ['N-1=', num2str(N-1)], 'Location', 'best');
 xlim([0, t_end]);
 grid on;
@@ -508,19 +480,16 @@ hold off;
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 15);
 
-% ===== 保存控制量数据用于对比 =====
-save('control_effort_base.mat', 'Ay', 'Az', 't');
-
 % ===== 导出所有图片为高清晰度 PDF =====
 output_dir = 'D:\guidance_learn\resilient_control调研\Dos攻击\IEEE-Transactions-LaTeX2e-templates-and-instructions (1)\Fig';
 if ~isfolder(output_dir)
     mkdir(output_dir);
 end
 
-fig_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-fig_names = {'3D_Trajectory_base', 'tgo_and_Range_base', 'MultiChannel_DoS_base', 'Ay_Az_base', ...
-             'Observer_Error_base', 'Lead_Angle_Sigma_base', 'Trust_Factor_Psi_base', ...
-             'Trust_Factor_Psi_Legend', 'Cumulative_Disconnect_Time_base', 'Rank_Laplacian_base'};
+fig_list = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+fig_names = {'3D_Trajectory_no_res', 'tgo_and_Range_no_res', 'MultiChannel_DoS_no_res', 'Ay_Az_no_res', ...
+             'Observer_Error_no_res', 'Lead_Angle_Sigma_no_res', 'Trust_Factor_Psi_no_res', ...
+             'Trust_Factor_Psi_Legend_no_res', 'Cumulative_Disconnect_Time_no_res', 'Rank_Laplacian_no_res'};
 fig_sizes = [800, 600; 800, 600; 800, 600; 800, 600; ...
              800, 600; 800, 600; 800, 600; 680, 130; 800, 600; 800, 600];
 
