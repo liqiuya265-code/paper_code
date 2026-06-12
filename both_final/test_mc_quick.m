@@ -21,7 +21,8 @@ x0_base = [12500, -45*pi/180, 45*pi/180,  30*pi/180, -30*pi/180, ...
 
 mu_test = [0.4, 0.6];
 N_MC_test = 3;
-methods = {'both', 'psi', 'none'};
+use_obstacles = true;
+methods = {'both', 'none', 'no_obs'};
 delta_R_range = [-200, 200];
 delta_V_range = [-10, 10];
 delta_angle_range = [-2, 2];
@@ -50,7 +51,7 @@ for mi = 1:length(mu_test)
                 sigma_max, alpha, beta, p_param, q_param, m_param, miu_param, ...
                 v_param, n_param, a_base, a_log_mc, dd_log, da_log, de_log, ...
                 x0_mc, T_safe, T, lambda_info, d_safe, kappa1, kappa2, ...
-                omega_env_i_base, n_env, m1, mode);
+                omega_env_i_base, n_env, m1, mode, use_obstacles);
             fprintf('  mc=%d, %-6s: r_miss=%.1f, e_tf=%.2f, J_u=%.1f, hit=%d\n', ...
                 mc, mode, r_m, e_t, J, h);
         end

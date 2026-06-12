@@ -31,11 +31,15 @@ else
 end
 
 % 计算增益项：kappa(t) * mu^(1+m)(t)
- if t<T*0.99
-    gain = kappa_t ^(1 + m1);
- else
-    gain=2;
- end
+%  if t<T*0.99
+%     gain = kappa_t ^(1 + m1);
+%  else
+%     gain=5;
+%  end
+
+
+gain = kappa_t ^(1 + m1);
+
 % 对每个导弹计算观测器导数
 for i = 1:M
     % z_i 是第 i 个导弹对所有导弹的观测向量 (M*5 维)

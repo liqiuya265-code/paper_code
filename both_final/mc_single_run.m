@@ -2,7 +2,7 @@ function [r_miss, e_tf, J_u, all_hit] = mc_single_run(t, dt, Vm_perturbed, N, M,
     sigma_max, alpha, beta, p, q, m_param, miu_param, v, n_param, ...
     a_base, a_log, dos_downtime_log, dos_active_log, dos_event_count_log, ...
     x0, T_safe, T, lambda_info, d_safe, kappa1, kappa2, omega_env_i, n_env, ...
-    m1, resilience_mode)
+    m1, resilience_mode, use_obstacles)
 % 单次 MC 仿真，仅返回三个性能指标（省去完整日志以提高效率）
 % r_miss  = max_i R_i(t_{f,i})  终端脱靶量
 % e_tf    = max_i t_{f,i} - min_i t_{f,i}  时间同步误差
@@ -11,10 +11,12 @@ function [r_miss, e_tf, J_u, all_hit] = mc_single_run(t, dt, Vm_perturbed, N, M,
 
 x = x0;
 obs = obstacles(d_safe, kappa1, kappa2);
-obs.add_spherical_obstacle([-500, -3500, 4000], 500);
-obs.add_cylindrical_obstacle([-5000, -1800, 0], 500, [0, 0, 1]);
-obs.add_spherical_obstacle([-2000, -500, 5000], 500);
-obs.add_cylindrical_obstacle([-2000, -2800, 0], 500, [0, 0, 1]);
+if use_obstacles
+    obs.add_spherical_obstacle([-500, -3500, 4000], 500);
+    obs.add_cylindrical_obstacle([-5000, -1800, 0], 500, [0, 0, 1]);
+    obs.add_spherical_obstacle([-2000, -500, 5000], 500);
+    obs.add_cylindrical_obstacle([-2000, -2800, 0], 500, [0, 0, 1]);
+end
 
 % 初始化观测器
 z_observer = zeros(M, M*5);
@@ -68,7 +70,11 @@ for step = 1:length(t)
         end
         sigma_j = acos(cos(x(5*(j-1)+4)) * cos(x(5*(j-1)+5)));
         tgo_j = x(5*(j-1)+1) * (1 + (sin(sigma_j)^2) / (2*(2*N-1))) / Vm_perturbed(j);
-        epsilon_j = Epsilon(tgo_matrix(j,:), a_base, j);
+        if strcmp(resilience_mode, 'no_obs')
+            epsilon_j = Epsilon(tgo_matrix(j,:), a_now, j);
+        else
+            epsilon_j = Epsilon(tgo_matrix(j,:), a_base, j);
+        end
 
         if sigma_j > 0.01
             Aybt(j) = ((2*N-1) * Vm_perturbed(j)^2 * sin(x(5*(j-1)+5)) * Phi(sigma_j, sigma_max, n_param) * ...
@@ -88,10 +94,15 @@ for step = 1:length(t)
     end
     L_mat = compute_laplacian(a_now);
     rank_L = rank(L_mat);
-    if rank_L ~= N-1
+    if rank_L == N-1
         cumulative_disconnect_time = cumulative_disconnect_time + dt;
     end
-    kappa_observer = T_safe / max(T_safe + cumulative_disconnect_time, 1e-6);
+    % if T_safe - cumulative_disconnect_time > 0
+    %     kappa_observer = 1 / max(T_safe - cumulative_disconnect_time, 5);
+    % else
+    %     kappa_observer=2;
+    % end
+    kappa_observer=2;
     for j = 1:M
         % 已命中：冻结
         if x(5*(j-1)+1) <= 5
@@ -99,7 +110,7 @@ for step = 1:length(t)
                 impact_time(j) = t(step);
                 final_r(j) = x(5*(j-1)+1);
             end
-            if j == M
+            if j == M && ~strcmp(resilience_mode, 'no_obs')
                 mu_observer = T / (T - t(step));
                 [Ay_obs, Az_obs, last_psi_i_obs_prev] = compute_control_from_observer(...
                     t(step), z_observer, a_now, a_base, Vm_perturbed, N, M, T, sigma_max, ...
@@ -129,11 +140,15 @@ for step = 1:length(t)
 
         [phi_i, r_ratio] = environmental_safety_factor(obs, p_i, omega_env_i(j), n_env);
 
-        [psi_i, has_connections] = information_credibility_factor(z_observer, x, a_now, j, lambda_info, last_psi_i(j), 0.3);
-        if ~has_connections
-            psi_i = last_psi_i(j);
+        if strcmp(resilience_mode, 'no_obs')
+            psi_i = 1;
         else
-            last_psi_i(j) = psi_i;
+            [psi_i, has_connections] = information_credibility_factor(z_observer, x, a_now, j, lambda_info, last_psi_i(j), 0.3);
+            if ~has_connections
+                psi_i = last_psi_i(j);
+            else
+                last_psi_i(j) = psi_i;
+            end
         end
         switch resilience_mode
             case 'both'
@@ -144,6 +159,8 @@ for step = 1:length(t)
                 omega_2i = phi_i;
             case 'none'
                 omega_2i = 1;
+            case 'no_obs'
+                omega_2i = phi_i;   % psi=1 (no observer), phi active
             otherwise
                 omega_2i = psi_i * phi_i;
         end
@@ -173,7 +190,7 @@ for step = 1:length(t)
             final_r(j) = x(5*(j-1)+1);
         end
 
-        if j == M
+        if j == M && ~strcmp(resilience_mode, 'no_obs')
             mu_observer = T / (T - t(step));
 
             [Ay_obs, Az_obs, last_psi_i_obs_prev] = compute_control_from_observer(...

@@ -138,7 +138,7 @@ for i = 1:length(t)
             weights_log(i, j, :) = [0, 0, 1, 1];
             if j == M
                 x_state = [x_state; x];
-                kappa_observer = 1/(T_safe-cumulative_disconnect_time);
+                kappa_observer = T_safe / max(T_safe + cumulative_disconnect_time, 1e-6);
                 mu_observer = T / (T - t(i));
                 oe = omega_env_i; ne = n_env;
                 if ~use_obstacle, oe = ones(1, M); ne = 1; end

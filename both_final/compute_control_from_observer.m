@@ -97,6 +97,8 @@ for j = 1:M
                 omega_2i = phi_i;
             case 'none'
                 omega_2i = 1;
+            case 'no_obs'
+                omega_2i = phi_i;
             otherwise
                 omega_2i = psi_i * phi_i;
         end

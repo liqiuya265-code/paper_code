@@ -12,17 +12,26 @@ clc;
 
 %% ===== 加载数据 =====
 data_file = 'monte_carlo_results.mat';
-if ~exist(data_file, 'file')
-    error('File %s not found. Please run run_monte_carlo.m first.', data_file);
+data_file_no_obs = 'monte_carlo_results_no_obs.mat';
+if exist(data_file, 'file')
+    load(data_file, 'results', 'mu_values', 'N_MC', 'methods', 'method_labels', 'use_obstacles');
+elseif exist(data_file_no_obs, 'file')
+    data_file = data_file_no_obs;
+    load(data_file, 'results', 'mu_values', 'N_MC', 'methods', 'method_labels', 'use_obstacles');
+else
+    error('No result file found. Please run run_monte_carlo.m first.');
 end
 
-load(data_file, 'results', 'mu_values', 'N_MC', 'methods', 'method_labels');
+% 推断障碍物状态
+if ~exist('use_obstacles', 'var')
+    use_obstacles = ~contains(data_file, 'no_obs');
+end
 
 % 默认方法标签（如果文件中未保存）
 if ~exist('method_labels', 'var') || isempty(method_labels)
-    method_labels = {'Full resilience ($\eta_1\eta_2$)', ...
-                     '$\psi$ only ($\eta_2$)', ...
-                     'No resilience'};
+    method_labels = {'Full guidance ($\eta_1\eta_2$, observer)', ...
+                     'No resilience ($\omega=1$, observer)', ...
+                     'No observer ($\eta_1$ only)'};
 end
 
 n_methods = length(methods);
@@ -71,149 +80,132 @@ line_styles = {'-', '--', '-.'};
 line_width = 1.8;
 alpha_shade = 0.18;
 
-%% ===== 绘制三子图 =====
-figure('Position', [50, 50, 1400, 420], 'Color', 'w');
-
-% ----- (a) Terminal Miss Distance -----
-subplot(1, 3, 1);
-hold on;
-h_leg = zeros(1, n_methods);
-for m = 1:n_methods
-    x_fill = [mu_plot, fliplr(mu_plot)];
-    y_fill = [(r_miss_mean(:, m)' + r_miss_std(:, m)'), ...
-              fliplr(r_miss_mean(:, m)' - r_miss_std(:, m)')];
-    fill(x_fill, y_fill, colors{m}, 'FaceAlpha', alpha_shade, ...
-        'EdgeColor', 'none', 'HandleVisibility', 'off');
-    h_leg(m) = plot(mu_plot, r_miss_mean(:, m), line_styles{m}, ...
-        'Color', colors{m}, 'LineWidth', line_width);
+obstacle_tag = 'With obstacles';
+if exist('use_obstacles', 'var') && ~use_obstacles
+    obstacle_tag = 'Without obstacles';
 end
-hold off;
-xlabel('DoS duty ratio $\mu$', 'FontSize', 13, 'FontName', 'Times New Roman', ...
-    'Interpreter', 'latex');
-ylabel('$\bar{r}_{\mathrm{miss}}$ (m)', 'FontSize', 13, ...
-    'FontName', 'Times New Roman', 'Interpreter', 'latex');
-title('(a) Terminal miss distance', 'FontSize', 14, ...
-    'FontName', 'Times New Roman');
-legend(h_leg, method_labels, 'FontSize', 10, 'FontName', 'Times New Roman', ...
-    'Interpreter', 'latex', 'Location', 'northwest');
-xlim([mu_plot(1), mu_plot(end)]);
-grid on;
-set(gca, 'FontName', 'Times New Roman', 'FontSize', 11);
 
-% ----- (b) Impact-Time Sync Error -----
-subplot(1, 3, 2);
-hold on;
-for m = 1:n_methods
-    x_fill = [mu_plot, fliplr(mu_plot)];
-    y_fill = [(e_tf_mean(:, m)' + e_tf_std(:, m)'), ...
-              fliplr(e_tf_mean(:, m)' - e_tf_std(:, m)')];
-    fill(x_fill, y_fill, colors{m}, 'FaceAlpha', alpha_shade, ...
-        'EdgeColor', 'none', 'HandleVisibility', 'off');
-    plot(mu_plot, e_tf_mean(:, m), line_styles{m}, ...
-        'Color', colors{m}, 'LineWidth', line_width);
-end
-hold off;
-xlabel('DoS duty ratio $\mu$', 'FontSize', 13, 'FontName', 'Times New Roman', ...
-    'Interpreter', 'latex');
-ylabel('$\bar{e}_{t_f}$ (s)', 'FontSize', 13, ...
-    'FontName', 'Times New Roman', 'Interpreter', 'latex');
-title('(b) Impact-time synchronization error', 'FontSize', 14, ...
-    'FontName', 'Times New Roman');
-xlim([mu_plot(1), mu_plot(end)]);
-grid on;
-set(gca, 'FontName', 'Times New Roman', 'FontSize', 11);
-
-% ----- (c) Control Effort -----
-subplot(1, 3, 3);
-hold on;
-for m = 1:n_methods
-    x_fill = [mu_plot, fliplr(mu_plot)];
-    y_fill = [(J_u_mean(:, m)' + J_u_std(:, m)'), ...
-              fliplr(J_u_mean(:, m)' - J_u_std(:, m)')];
-    fill(x_fill, y_fill, colors{m}, 'FaceAlpha', alpha_shade, ...
-        'EdgeColor', 'none', 'HandleVisibility', 'off');
-    plot(mu_plot, J_u_mean(:, m), line_styles{m}, ...
-        'Color', colors{m}, 'LineWidth', line_width);
-end
-hold off;
-xlabel('DoS duty ratio $\mu$', 'FontSize', 13, 'FontName', 'Times New Roman', ...
-    'Interpreter', 'latex');
-ylabel('$\bar{J}_u$ (m$^2$/s$^3$)', 'FontSize', 13, ...
-    'FontName', 'Times New Roman', 'Interpreter', 'latex');
-title('(c) Control effort', 'FontSize', 14, ...
-    'FontName', 'Times New Roman');
-xlim([mu_plot(1), mu_plot(end)]);
-grid on;
-set(gca, 'FontName', 'Times New Roman', 'FontSize', 11);
-
-set(findall(gcf, '-property', 'FontName'), 'FontName', 'Times New Roman');
-
-%% ===== 导出 PDF =====
+%% ===== 导出三张独立 PDF =====
 output_dir = fileparts(mfilename('fullpath'));
 if isempty(output_dir), output_dir = pwd; end
 
-% PDF
-pdf_path = fullfile(output_dir, 'MonteCarlo_DoS_Results.pdf');
-exportgraphics(gcf, pdf_path, 'Resolution', 600, 'ContentType', 'vector');
-fprintf('PDF exported: %s\n', pdf_path);
+sub_labels = {'a', 'b', 'c'};
+ylabels = {'Miss distance (m)', ...
+           'Impact-time synchronization error (s)', ...
+           'Control effort (m^2/s^3)'};
+titles = {'(a) Terminal miss distance', ...
+          '(b) Impact-time synchronization error', ...
+          '(c) Control effort'};
 
-% EPS (单独导出每个子图为 EPS，便于 LaTeX 排版)
 for sp = 1:3
-    figure('Position', [50, 50, 480, 400], 'Color', 'w', 'Visible', 'off');
+    figure('Position', [50, 50, 520, 400], 'Color', 'w');
     hold on;
     for m = 1:n_methods
         if sp == 1
             y_mean = r_miss_mean(:, m);
             y_std  = r_miss_std(:, m);
-            ylab = '$\bar{r}_{\mathrm{miss}}$ (m)';
-            tit = '(a) Terminal miss distance';
         elseif sp == 2
             y_mean = e_tf_mean(:, m);
             y_std  = e_tf_std(:, m);
-            ylab = '$\bar{e}_{t_f}$ (s)';
-            tit = '(b) Impact-time synchronization error';
         else
             y_mean = J_u_mean(:, m);
             y_std  = J_u_std(:, m);
-            ylab = '$\bar{J}_u$ (m$^2$/s$^3$)';
-            tit = '(c) Control effort';
         end
         x_fill = [mu_plot, fliplr(mu_plot)];
         y_fill = [(y_mean' + y_std'), fliplr(y_mean' - y_std')];
-        fill(x_fill, y_fill, colors{m}, 'FaceAlpha', alpha_shade, 'EdgeColor', 'none');
-        if sp == 1
-            plot(mu_plot, y_mean, line_styles{m}, 'Color', colors{m}, ...
-                'LineWidth', line_width, 'DisplayName', method_labels{m});
-        else
-            plot(mu_plot, y_mean, line_styles{m}, 'Color', colors{m}, ...
-                'LineWidth', line_width, 'HandleVisibility', 'off');
-        end
+        fill(x_fill, y_fill, colors{m}, 'FaceAlpha', alpha_shade, 'EdgeColor', 'none', ...
+            'HandleVisibility', 'off');
+        plot(mu_plot, y_mean, line_styles{m}, 'Color', colors{m}, ...
+            'LineWidth', line_width, 'HandleVisibility', 'off');
     end
     hold off;
-    xlabel('DoS duty ratio $\mu$', 'FontSize', 14, 'FontName', 'Times New Roman', ...
-        'Interpreter', 'latex');
-    ylabel(ylab, 'FontSize', 14, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
-    if sp == 1
-        legend('Location', 'northwest', 'FontSize', 11, 'FontName', 'Times New Roman', ...
-            'Interpreter', 'latex');
-    end
+    xlabel('\mu', 'FontSize', 14, 'FontName', 'Times New Roman', ...
+        'Interpreter', 'tex');
+    ylabel(ylabels{sp}, 'FontSize', 14, 'FontName', 'Times New Roman');
     xlim([mu_plot(1), mu_plot(end)]);
+    if sp == 1
+        ylim([-10 10]);
+    elseif sp == 3
+        ylim([-1e12 1e12]);
+    end
+
     grid on;
     set(gca, 'FontName', 'Times New Roman', 'FontSize', 12);
 
-    sub_labels = {'a', 'b', 'c'};
-    eps_name = sprintf('MonteCarlo_DoS_%s.eps', sub_labels{sp});
-    eps_path = fullfile(output_dir, eps_name);
-    exportgraphics(gcf, eps_path, 'Resolution', 600, 'ContentType', 'vector');
-    fprintf('EPS exported: %s\n', eps_path);
-    close(gcf);
+    % 第三张图添加局部放大 (x: 0.6-0.8, y: 0-1e6)
+    if sp == 3
+        inset_ax = axes('Position', [0.2, 0.17, 0.30, 0.3]);
+        hold(inset_ax, 'on');
+        idx_zoom = mu_plot >= 0.5 & mu_plot <= 0.8;
+        mu_zoom = mu_plot(idx_zoom);
+        for m = 1:n_methods
+            y_mean_z = J_u_mean(idx_zoom, m);
+            y_std_z  = J_u_std(idx_zoom, m);
+            x_fill_z = [mu_zoom, fliplr(mu_zoom)];
+            y_fill_z = [(y_mean_z' + y_std_z'), fliplr(y_mean_z' - y_std_z')];
+            fill(inset_ax, x_fill_z, y_fill_z, colors{m}, 'FaceAlpha', alpha_shade, ...
+                'EdgeColor', 'none', 'HandleVisibility', 'off');
+            plot(inset_ax, mu_zoom, y_mean_z, line_styles{m}, 'Color', colors{m}, ...
+                'LineWidth', line_width, 'HandleVisibility', 'off');
+        end
+        hold(inset_ax, 'off');
+        xlim(inset_ax, [0.5 0.8]);
+        ylim(inset_ax, [2*1e4 2*1e5]);
+        set(inset_ax, 'FontName', 'Times New Roman', 'FontSize', 9);
+        set(inset_ax, 'XTick', [0.6 0.7 0.8]);
+        box(inset_ax, 'on');
+    end
+
+    % PDF 导出
+    if use_obstacles
+        pdf_name = sprintf('MonteCarlo_DoS_%s.pdf', sub_labels{sp});
+    else
+        pdf_name = sprintf('MonteCarlo_DoS_%s_no_obs.pdf', sub_labels{sp});
+    end
+    pdf_path = fullfile(output_dir, pdf_name);
+    exportgraphics(gcf, pdf_path, 'Resolution', 600, 'ContentType', 'vector');
+    fprintf('PDF exported: %s\n', pdf_path);
 end
 
 fprintf('\nAll figures exported successfully.\n');
 fprintf('Output directory: %s\n', output_dir);
 
+%% ===== 单独导出 Legend =====
+figure('Position', [200, 420, 680, 130], 'Color', 'w');
+ax = axes('Position', [0 0 1 1], 'Visible', 'off', 'XLim', [0 1], 'YLim', [0 1]);
+hold on;
+
+rectangle('Position', [0.03, 0.04, 0.92, 0.2], 'FaceColor', 'w', ...
+    'LineWidth', 0.8);
+
+n_leg = n_methods;
+col_w = 0.88 / n_leg;
+start_x = 0.03;
+short_labels = {'Full guidance', 'No resilience', 'No observer'};
+
+for midx = 1:n_leg
+    cx = start_x + (midx - 0.5) * col_w;
+    line([cx-0.06, cx], [0.15, 0.15], 'LineWidth', 2.5, ...
+        'Color', colors{midx}, 'LineStyle', line_styles{midx});
+    text(cx+0.02, 0.15, short_labels{midx}, ...
+        'FontSize', 12, 'FontName', 'Times New Roman', ...
+        'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle');
+end
+
+all_txt = findall(gcf, '-property', 'FontName');
+set(all_txt, 'FontName', 'Times New Roman');
+
+% 导出 legend PDF
+if use_obstacles
+    legend_pdf = fullfile(output_dir, 'MonteCarlo_DoS_legend.pdf');
+else
+    legend_pdf = fullfile(output_dir, 'MonteCarlo_DoS_legend_no_obs.pdf');
+end
+exportgraphics(gcf, legend_pdf, 'Resolution', 600, 'ContentType', 'vector');
+fprintf('PDF exported: %s\n', legend_pdf);
+
 %% ===== 打印统计摘要 =====
-fprintf('\n========== Monte Carlo Results Summary ==========\n');
+fprintf('\n========== Monte Carlo Results Summary (%s) ==========\n', obstacle_tag);
 fprintf('N_MC = %d, mu range = [%.2f, %.2f], %d values\n', ...
     N_MC, mu_plot(1), mu_plot(end), n_valid);
 fprintf('%-8s %-30s %-12s %-12s %-12s\n', 'mu', 'Method', 'r_miss', 'e_tf', 'J_u');

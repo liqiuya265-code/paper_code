@@ -2,9 +2,9 @@
 % 蒙特卡洛仿真：评估不同 DoS 占空比下三种制导律的鲁棒性
 %
 % 三种对比方法:
-%   Method 1: 'both' - full resilience (psi * phi)
-%   Method 2: 'psi'  - information credibility only
-%   Method 3: 'none' - no resilience (omega = 1)
+%   Method 1: 'both'   - 完全制导律 (observer + psi*phi)
+%   Method 2: 'none'   - 两个弹性因子都不加 (observer + omega=1)
+%   Method 3: 'no_obs' - 没有观测器 (no observer + phi only)
 %
 % 横轴: DoS duty ratio mu = 0.4:0.02:0.9
 % 每个 mu 运行 N_MC = 100 次独立仿真
@@ -52,12 +52,13 @@ x0_base = [12500, -45*pi/180, 45*pi/180,  30*pi/180, -30*pi/180, ...
            11500, -30*pi/180, 50*pi/180,  30*pi/180, -30*pi/180];
 
 %% ===== MC 参数 =====
-mu_values = 0.4:0.02:0.9;     % DoS 占空比扫描
+mu_values = 0.4:0.01:0.9;     % DoS 占空比扫描
 N_MC = 100;                    % 每个 mu 的蒙特卡洛次数
-methods = {'both', 'psi', 'none'};
-method_labels = {'Full resilience ($\eta_1\eta_2$)', ...
-                 '$\psi$ only ($\eta_2$)', ...
-                 'No resilience'};
+use_obstacles = false;          % 是否包含障碍物 (true/false)
+methods = {'both', 'none', 'no_obs'};
+method_labels = {'Full guidance ($\eta_1\eta_2$, observer)', ...
+                 'No resilience ($\omega=1$, observer)', ...
+                 'No observer ($\eta_1$ only)'};
 n_methods = length(methods);
 n_mu = length(mu_values);
 
@@ -66,10 +67,14 @@ delta_R_range = [-200, 200];        % m
 delta_V_range = [-10, 10];          % m/s
 delta_angle_range = [-2, 2];        % degrees (自动转为弧度)
 
-% 输出目录
+% 输出目录和文件名（区分有无障碍物）
 output_dir = fileparts(mfilename('fullpath'));
 if isempty(output_dir), output_dir = pwd; end
-data_file = fullfile(output_dir, 'monte_carlo_results.mat');
+if use_obstacles
+    data_file = fullfile(output_dir, 'monte_carlo_results.mat');
+else
+    data_file = fullfile(output_dir, 'monte_carlo_results_no_obs.mat');
+end
 
 %% ===== 检查是否已有部分结果（支持断点续跑）=====
 if exist(data_file, 'file')
@@ -110,7 +115,7 @@ t_start_total = tic;
 
 for mu_idx = start_mu_idx:n_mu
     mu_target = mu_values(mu_idx);
-    T_safe = T * (1 - mu_target);  % T_safe 随 mu 增大而减小
+    T_safe = 5;  % T_safe 随 mu 增大而减小
     fprintf('\n===== mu = %.2f (%d/%d) =====\n', mu_target, mu_idx, n_mu);
     t_start_mu = tic;
 
@@ -149,7 +154,7 @@ for mu_idx = start_mu_idx:n_mu
                     sigma_max, alpha, beta, p_param, q_param, m_param, miu_param, ...
                     v_param, n_param, a_base, a_log_mc, dd_log, da_log, de_log, ...
                     x0_mc, T_safe, T, lambda_info, d_safe, kappa1, kappa2, ...
-                    omega_env_i_base, n_env, m1, mode);
+                    omega_env_i_base, n_env, m1, mode, use_obstacles);
                 r_miss_local(m_idx) = r_m;
                 e_tf_local(m_idx)   = e_t;
                 J_u_local(m_idx)    = J;
@@ -179,7 +184,7 @@ for mu_idx = start_mu_idx:n_mu
                     sigma_max, alpha, beta, p_param, q_param, m_param, miu_param, ...
                     v_param, n_param, a_base, a_log_mc, dd_log, da_log, de_log, ...
                     x0_mc, T_safe, T, lambda_info, d_safe, kappa1, kappa2, ...
-                    omega_env_i_base, n_env, m1, mode);
+                    omega_env_i_base, n_env, m1, mode, use_obstacles);
                 r_miss_all(mc, m_idx) = r_m;
                 e_tf_all(mc, m_idx)   = e_t;
                 J_u_all(mc, m_idx)    = J;
@@ -213,7 +218,8 @@ for mu_idx = start_mu_idx:n_mu
     results{mu_idx} = res_mu;
 
     % 每个 mu 完成后立即保存（断点续跑保护）
-    save(data_file, 'results', 'mu_values', 'N_MC', 'methods', 'method_labels', '-v7.3');
+    save(data_file, 'results', 'mu_values', 'N_MC', 'methods', 'method_labels', ...
+        'use_obstacles', '-v7.3');
 
     elapsed_mu = toc(t_start_mu);
     fprintf('  mu=%.2f done in %.1f s. r_miss=[%.1f, %.1f, %.1f], e_tf=[%.2f, %.2f, %.2f], J_u=[%.1f, %.1f, %.1f]\n', ...
