@@ -29,9 +29,9 @@ end
 
 % 默认方法标签（如果文件中未保存）
 if ~exist('method_labels', 'var') || isempty(method_labels)
-    method_labels = {'Full guidance ($\eta_1\eta_2$, observer)', ...
-                     'No resilience ($\omega=1$, observer)', ...
-                     'No observer ($\eta_1$ only)'};
+    method_labels = {'Proposed dual-resilient cooperative guidance law (92)', ...
+                     'Guidance law (93a) without dual-resilient weighting', ...
+                     'Guidance law (93a) without the distributed observer'};
 end
 
 n_methods = length(methods);
@@ -124,9 +124,10 @@ for sp = 1:3
     ylabel(ylabels{sp}, 'FontSize', 14, 'FontName', 'Times New Roman');
     xlim([mu_plot(1), mu_plot(end)]);
     if sp == 1
-        ylim([-10 10]);
+        ylim([-2 10]);
     elseif sp == 3
-        ylim([-1e12 1e12]);
+        ylim([-1e11 1e12]);
+
     end
 
     grid on;
@@ -134,9 +135,9 @@ for sp = 1:3
 
     % 第三张图添加局部放大 (x: 0.6-0.8, y: 0-1e6)
     if sp == 3
-        inset_ax = axes('Position', [0.2, 0.17, 0.30, 0.3]);
+        inset_ax = axes('Position', [0.2, 0.5, 0.35, 0.35]);
         hold(inset_ax, 'on');
-        idx_zoom = mu_plot >= 0.5 & mu_plot <= 0.8;
+        idx_zoom = mu_plot >= 0.6 & mu_plot <= 0.9;
         mu_zoom = mu_plot(idx_zoom);
         for m = 1:n_methods
             y_mean_z = J_u_mean(idx_zoom, m);
@@ -149,12 +150,60 @@ for sp = 1:3
                 'LineWidth', line_width, 'HandleVisibility', 'off');
         end
         hold(inset_ax, 'off');
-        xlim(inset_ax, [0.5 0.8]);
+        xlim(inset_ax, [0.6 0.9]);
         ylim(inset_ax, [2*1e4 2*1e5]);
         set(inset_ax, 'FontName', 'Times New Roman', 'FontSize', 9);
         set(inset_ax, 'XTick', [0.6 0.7 0.8]);
         box(inset_ax, 'on');
     end
+
+
+    if sp == 1
+        inset_ax = axes('Position', [0.2, 0.5, 0.35, 0.35]);
+        hold(inset_ax, 'on');
+        idx_zoom = mu_plot >= 0.6 & mu_plot <= 0.9;
+        mu_zoom = mu_plot(idx_zoom);
+        for m = 1:n_methods
+            y_mean_z = r_miss_mean(idx_zoom, m);
+            y_std_z  = r_miss_std(idx_zoom, m);
+            x_fill_z = [mu_zoom, fliplr(mu_zoom)];
+            y_fill_z = [(y_mean_z' + y_std_z'), fliplr(y_mean_z' - y_std_z')];
+            fill(inset_ax, x_fill_z, y_fill_z, colors{m}, 'FaceAlpha', alpha_shade, ...
+                'EdgeColor', 'none', 'HandleVisibility', 'off');
+            plot(inset_ax, mu_zoom, y_mean_z, line_styles{m}, 'Color', colors{m}, ...
+                'LineWidth', line_width, 'HandleVisibility', 'off');
+        end
+        hold(inset_ax, 'off');
+        xlim(inset_ax, [0.6 0.9]);
+        ylim(inset_ax, [-2 7]);
+        set(inset_ax, 'FontName', 'Times New Roman', 'FontSize', 9);
+        set(inset_ax, 'XTick', [0.6 0.7 0.8]);
+        box(inset_ax, 'on');
+    end
+
+    if sp == 2
+        inset_ax = axes('Position', [0.2, 0.5, 0.35, 0.35]);
+        hold(inset_ax, 'on');
+        idx_zoom = mu_plot >= 0.6 & mu_plot <= 0.9;
+        mu_zoom = mu_plot(idx_zoom);
+        for m = 1:n_methods
+            y_mean_z = e_tf_mean(idx_zoom, m);
+            y_std_z  = e_tf_std(idx_zoom, m);
+            x_fill_z = [mu_zoom, fliplr(mu_zoom)];
+            y_fill_z = [(y_mean_z' + y_std_z'), fliplr(y_mean_z' - y_std_z')];
+            fill(inset_ax, x_fill_z, y_fill_z, colors{m}, 'FaceAlpha', alpha_shade, ...
+                'EdgeColor', 'none', 'HandleVisibility', 'off');
+            plot(inset_ax, mu_zoom, y_mean_z, line_styles{m}, 'Color', colors{m}, ...
+                'LineWidth', line_width, 'HandleVisibility', 'off');
+        end
+        hold(inset_ax, 'off');
+        xlim(inset_ax, [0.6 0.9]);
+        ylim(inset_ax, [-0.5 1]);
+        set(inset_ax, 'FontName', 'Times New Roman', 'FontSize', 9);
+        set(inset_ax, 'XTick', [0.6 0.7 0.8]);
+        box(inset_ax, 'on');
+    end
+
 
     % PDF 导出
     if use_obstacles
@@ -171,26 +220,36 @@ fprintf('\nAll figures exported successfully.\n');
 fprintf('Output directory: %s\n', output_dir);
 
 %% ===== 单独导出 Legend =====
-figure('Position', [200, 420, 680, 130], 'Color', 'w');
+figure('Position', [100, 420, 800, 90], 'Color', 'w');
 ax = axes('Position', [0 0 1 1], 'Visible', 'off', 'XLim', [0 1], 'YLim', [0 1]);
 hold on;
 
-rectangle('Position', [0.03, 0.04, 0.92, 0.2], 'FaceColor', 'w', ...
+rectangle('Position', [0.02, 0.02, 0.96, 0.54], 'FaceColor', 'w', ...
     'LineWidth', 0.8);
 
-n_leg = n_methods;
-col_w = 0.88 / n_leg;
-start_x = 0.03;
-short_labels = {'Full guidance', 'No resilience', 'No observer'};
+short_labels = {'Proposed dual-resilient guidance law (92)', ...
+    'Guidance law (93a) without dual-resilient factors', ...
+    'Guidance law (93a) without dual-resilient factors and observers'};
 
-for midx = 1:n_leg
-    cx = start_x + (midx - 0.5) * col_w;
-    line([cx-0.06, cx], [0.15, 0.15], 'LineWidth', 2.5, ...
+% 第一排: two columns, y = 0.38
+col_w_2 = 0.88 / 2;
+for midx = 1:2
+    cx = -0.12 + (midx - 0.5) * col_w_2;
+    line([cx-0.05, cx], [0.4, 0.4], 'LineWidth', 2.5, ...
         'Color', colors{midx}, 'LineStyle', line_styles{midx});
-    text(cx+0.02, 0.15, short_labels{midx}, ...
+    text(cx+0.02, 0.4, short_labels{midx}, ...
         'FontSize', 12, 'FontName', 'Times New Roman', ...
         'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle');
 end
+
+% 第二排: one column centered, y = 0.15
+midx = 3;
+cx = 0.1;
+line([cx-0.05, cx], [0.18, 0.18], 'LineWidth', 2.5, ...
+    'Color', colors{midx}, 'LineStyle', line_styles{midx});
+text(cx+0.02, 0.18, short_labels{midx}, ...
+    'FontSize', 12, 'FontName', 'Times New Roman', ...
+    'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle');
 
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman');

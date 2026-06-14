@@ -234,7 +234,7 @@ set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);
 
 % ---- 图7：统一图例（2×4，完全居中）----
 figure(7)
-set(gcf, 'Position', [200, 420, 680, 170], 'Color', 'w');
+set(gcf, 'Position', [200, 420, 750, 170], 'Color', 'w');
 ax = axes('Position', [0 0 1 1], 'Visible', 'off', 'XLim', [0 1], 'YLim', [0 1]);
 hold on;
 
@@ -243,26 +243,26 @@ rectangle('Position', [0.03, 0.04, 0.94, 0.3], 'FaceColor', 'w', ...
      'LineWidth', 0.8);
 
 n_col = M;
-col_w = 0.88 / n_col;
-start_x = 0.08;
+col_w = 0.75 / n_col;
+start_x = 0.18;
 
 % 右侧行标注
-text(0.1, 0.255, 'OA:',   'FontSize', 12, 'FontName', 'Times New Roman', ...
+text(0.21, 0.255, 'With avoidance:',   'FontSize', 12, 'FontName', 'Times New Roman', ...
      'HorizontalAlignment', 'right', 'VerticalAlignment', 'middle');
-text(0.1, 0.105, 'noOA:', 'FontSize', 12, 'FontName', 'Times New Roman', ...
+text(0.21, 0.105, 'Without avoidance:', 'FontSize', 12, 'FontName', 'Times New Roman', ...
     'HorizontalAlignment', 'right', 'VerticalAlignment', 'middle');
 
 for midx = 1:n_col
-    cx = start_x + (midx - 0.5) * col_w;   % 列中心
+    cx = start_x + (midx - 0.4) * col_w;   % 列中心
 
     % 上行：实线 = OA
-    line([cx-0.07, cx], [0.255, 0.255], 'LineWidth', 2.5, 'Color', colors(midx,:));
+    line([cx-0.06, cx], [0.255, 0.255], 'LineWidth', 2.5, 'Color', colors(midx,:));
     text(cx+0.02, 0.255, sprintf('Missile %d', midx), ...
         'FontSize', 12, 'FontName', 'Times New Roman', ...
         'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle');
 
     % 下行：虚线 = noOA
-    line([cx-0.07, cx], [0.105, 0.105], 'LineWidth', 2.5, ...
+    line([cx-0.06, cx], [0.105, 0.105], 'LineWidth', 2.5, ...
         'LineStyle', '--', 'Color', colors(midx,:));
     text(cx+0.02, 0.105, sprintf('Missile %d', midx), ...
         'FontSize', 12, 'FontName', 'Times New Roman', ...
