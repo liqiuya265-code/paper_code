@@ -5,7 +5,7 @@ t=0:dt:tf;
 Vm=[300,300,300,300];
 N=4;
 M=4;
-sigma_max=5*pi/180;
+sigma_max=10*pi/180;
 alpha=5;
 beta=5;
 p=0.8;
@@ -30,7 +30,7 @@ obs = obstacles(d_safe, kappa1, kappa2);
 
 % 添加障碍物
 obs.add_spherical_obstacle([-500, -3500, 4000], 500);  % 阻挡 M1 路径
-obs.add_cylindrical_obstacle([-5000, -1800, 0], 500, [0, 0, 1]);  % 阻挡 M2 路径（垂直圆柱）
+obs.add_cylindrical_obstacle([-4600, -1800, 0], 500, [0, 0, 1]);  % 阻挡 M2 路径（垂直圆柱）
 obs.add_spherical_obstacle([-2000, -500, 5000], 500);  % 阻挡 M3 路径
 obs.add_cylindrical_obstacle([-2000, -2800, 0], 500, [0, 0, 1]);  % 阻挡 M4 路径
 

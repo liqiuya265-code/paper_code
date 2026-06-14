@@ -15,7 +15,7 @@ a_now = a_base;
 
 % DoS 参数（与 main.m 保持一致）
 zeta_ij = 1*ones(M);
-mu_ij = 0.52*ones(M);
+mu_ij = 0.52*ones(M);%0.65
 kappa_ij = 2*ones(M);
 nu_ij = 5*ones(M);
 % zeta_ij = 0*ones(M);

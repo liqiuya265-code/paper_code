@@ -27,7 +27,7 @@ Z = zeros(n_steps, M);
 obs = obstacles(d_safe, kappa1, kappa2);
 if use_obstacle
     obs.add_spherical_obstacle([-500, -3500, 4000], 500);
-    obs.add_cylindrical_obstacle([-5000, -1800, 0], 500, [0, 0, 1]);
+    obs.add_cylindrical_obstacle([-4600, -1800, 0], 500, [0, 0, 1]);
     obs.add_spherical_obstacle([-2000, -500, 5000], 500);
     obs.add_cylindrical_obstacle([-2000, -2800, 0], 500, [0, 0, 1]);
 end

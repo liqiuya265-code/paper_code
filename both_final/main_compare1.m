@@ -5,21 +5,21 @@ clc;clear;
 
 tf=100; dt=0.1; t=0:dt:tf;
 Vm=[300,300,300,300]; N=4; M=4;
-sigma_max=5*pi/180;
-alpha=5; beta=5; p=0.8; q=1.2; m=1.5; miu=0.3; v=0.7; n=3; m1=0; varpi=2;
+sigma_max=15*pi/180;
+alpha=5; beta=5; p=0.8; q=1.2; m=1.5; miu=0.3; v=0.7; n=2; m1=0; varpi=2;
 
 % 障碍物参数（与 plot_obstacle_comparison.m 保持一致）
-d_safe = 150; kappa1 = 1; kappa2 = 1;
-omega_env_i = 2.5 * ones(1, M);  % 动态 ω，首次触发避障时更新
+d_safe = 100; kappa1 = 1; kappa2 = 1;
+omega_env_i = 2 * ones(1, M);  % 动态 ω，首次触发避障时更新
 omega_captured = false(1, M);
 n_env = 2;
 lambda_info = 0.001;
 
 obs = obstacles(d_safe, kappa1, kappa2);
 obs.add_spherical_obstacle([-500, -3500, 4000], 500);
-obs.add_cylindrical_obstacle([-5000, -1800, 0], 500, [0, 0, 1]);
-obs.add_spherical_obstacle([-2000, -500, 5000], 500);
-obs.add_cylindrical_obstacle([-2000, -2800, 0], 500, [0, 0, 1]);
+obs.add_cylindrical_obstacle([-4500, -1800, 0], 500, [0, 0, 1]);
+obs.add_spherical_obstacle([-2000, -500, 4500], 500);
+obs.add_cylindrical_obstacle([-2000, -3000, 0], 500, [0, 0, 1]);
 
 % 通信拓扑与 DoS 参数
 a_base=[1,1,0,1;1,1,1,0;0,1,1,1;1,0,1,1];
@@ -124,7 +124,6 @@ for i = 1:length(t)
 
         % 环境安全因子（避障）
         [phi_i, r_ratio] = environmental_safety_factor(obs, p_i, omega_env_i(j), n_env);
-
         % 简化 psi：基于网络连通性（无观测器）
         has_connections = false;
         for k = 1:M
@@ -138,7 +137,6 @@ for i = 1:length(t)
             psi_i = last_psi_i(j);
         end
         omega_2i = psi_i * phi_i;
-
         Ay_png = -N*Vm(j)^2*sin(x(5*(j-1)+5))/x(5*(j-1)+1) - omega_2i*Aybt(j);
         Az_png = -N*Vm(j)^2*sin(x(5*(j-1)+4))*cos(x(5*(j-1)+5))/x(5*(j-1)+1) - omega_2i*Azbt(j);
 
@@ -158,7 +156,9 @@ for i = 1:length(t)
         weights_log(i,j,:) = [F_i, omega_2i, phi_i, psi_i];
 
         A_V = R_LtoV * R_ItoL * A_ctrl;
-        Ay_row(j) = A_V(2); Az_row(j) = A_V(3);
+        Ay_row(j) = A_V(2); 
+        
+        Az_row(j) = A_V(3);
 
         x(5*(j-1)+1:5*(j-1)+5) = RK4(i, x(5*(j-1)+1:5*(j-1)+5)', Ay_row(j), Az_row(j), dt, Vm(j));
 
