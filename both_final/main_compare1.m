@@ -217,6 +217,23 @@ for j = 1:M
     plot(t_plot(1:hit_idx(j)), tgo(1:hit_idx(j), j), 'LineWidth', 2, 'Color', colors(j,:));
 end
 ylabel('t_{go} (s)'); grid on; set(gca,'FontName','Times New Roman');
+
+% tgo 局部放大 inset: x [42,45], y [0,2]
+inset_ax = axes('Position', [0.7, 0.7, 0.18, 0.18]);
+hold(inset_ax, 'on');
+tgo_trim = tgo(1:len_plot, :);
+t_plot_col = t_plot(:);
+for j = 1:M
+    idx_zoom = t_plot_col >= 42 & t_plot_col <= 45 & (1:len_plot)' <= hit_idx(j);
+    plot(inset_ax, t_plot_col(idx_zoom), tgo_trim(idx_zoom, j), ...
+        'LineWidth', 1.5, 'Color', colors(j,:));
+end
+hold(inset_ax, 'off');
+xlim(inset_ax, [42 45]);
+ylim(inset_ax, [0 2]);
+set(inset_ax, 'FontName', 'Times New Roman', 'FontSize', 8);
+box(inset_ax, 'on');
+
 subplot(2,1,2); hold on;
 for j = 1:M
     plot(t_plot(1:hit_idx(j)), r_all(1:hit_idx(j), j), 'LineWidth', 2, 'Color', colors(j,:));
@@ -224,6 +241,7 @@ end
 xlabel('t(s)'); ylabel('R (m)'); grid on;
 set(gca,'FontName','Times New Roman');
 set(findall(gcf,'-property','FontName'),'FontName','Times New Roman','FontSize',18);
+set(inset_ax, 'FontSize', 15);
 
 % ---- 图3：Ay + Az（2×1）----
 figure(3); set(gcf, 'Position', fig_sz);

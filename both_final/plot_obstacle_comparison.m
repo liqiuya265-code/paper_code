@@ -27,11 +27,11 @@ load('dos_scenario.mat', 'a_log', 'dos_downtime_log', 'dos_active_log', 'dos_eve
 x0=[12500,-45*pi/180,45*pi/180,30*pi/180,-30*pi/180,12000,-15*pi/180,30*pi/180,...
     30*pi/180,30*pi/180,11000,-45*pi/180,45*pi/180,30*pi/180,15*pi/180,11500,-30*pi/180,50*pi/180,30*pi/180,-30*pi/180];
 
-T_safe = 5; T = 10;
+T_safe = 4.6; T = 10;
 
 % 障碍物参数（d_safe 与 main.m 保持一致）
 d_safe = 50; kappa1 = 1; kappa2 =1;
-omega_env_i =2.5*ones(1, M); n_env = 2;
+omega_env_i =2*ones(1, M); n_env = 2;
 
 %% ===== 仿真 1：有避障 =====
 disp('Running simulation WITH obstacle avoidance...');
@@ -152,7 +152,6 @@ all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);
 
 
-
 % ---- 图5：F_i 模式选择因子（分导弹显示避障触发时段）----
 figure(5)
 set(gcf, 'Position', [350, 50, 800, 600]);
@@ -206,6 +205,7 @@ for midx = 1:M
     plot(t(1:len_no),  phi_no,  '--', 'LineWidth', 2, 'Color', colors(midx,:));
 end
 ylim([-0.05, 1.05]); ylabel('\eta_{2,i}'); xlabel('t(s)');grid on;
+xline(10, '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5, 'HandleVisibility', 'off');
 
 % --- 子图2：ψ_i（信息可信因子）---
 subplot(3,1,2); hold on;
@@ -216,6 +216,7 @@ for midx = 1:M
     plot(t(1:len_no),  psi_no,  '--', 'LineWidth', 2, 'Color', colors(midx,:));
 end
 ylim([-0.05, 1.05]); ylabel('\eta_{1,i}'); xlabel('t(s)');grid on;
+xline(10, '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5, 'HandleVisibility', 'off');
 
 
 % --- 子图3：ω_{2i} = φ_i·ψ_i（复合权重）---
@@ -228,6 +229,8 @@ for midx = 1:M
 end
 ylim([-0.05, 1.05]); ylabel('\eta_{1,i} \times \eta_{2,i}'); grid on;
 xlabel('t(s)');
+xline(10, '--', 'T=10s', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5, ...
+    'LabelVerticalAlignment', 'bottom', 'LabelOrientation', 'horizontal', 'HandleVisibility', 'off');
 
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);
@@ -300,6 +303,10 @@ for i_obs = 1:M
     end
     if i_obs == M
         xlabel("t(s)")
+        xline(10, '--', 'T=10s', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5, ...
+            'LabelVerticalAlignment', 'bottom', 'LabelOrientation', 'horizontal', 'HandleVisibility', 'off');
+    else
+        xline(10, '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5, 'HandleVisibility', 'off');
     end
     ylabel("||e_{state}||_2")
     text(0.5, 0.8, ['(', roman_labels{i_obs}, ') Missile ', num2str(i_obs), ' State Error Norm'], ...

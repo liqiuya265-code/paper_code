@@ -355,9 +355,11 @@ for i_obs = 1:M
         'FontSize', 12, 'FontName', 'Times New Roman', 'Clipping', 'off');
     if i_obs == M
         xlabel("t(s)")
+        xline(10, '--', 'T=10s', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5, 'LabelVerticalAlignment', 'bottom', 'LabelOrientation', 'horizontal', 'HandleVisibility', 'off');
     end
     legend('Location', 'best')
     grid on;
+    xline(10, '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5, 'HandleVisibility', 'off');
     hold off;
 end
 
@@ -396,6 +398,7 @@ ylabel('$\eta_{1,i}$', 'FontSize', 11, 'FontName', 'Times New Roman', 'Interpret
 xlim([0, t_end]);
 ylim([-0.05, 1.05]);
 grid on;
+xline(10, '--', 'T=10s', 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5, 'LabelVerticalAlignment', 'bottom', 'LabelOrientation', 'horizontal', 'HandleVisibility', 'off');
 hold off;
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);

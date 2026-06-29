@@ -80,8 +80,8 @@ ylabel('$\sum_{i=1}^{4} \int_{0}^{t} \|A_i\|^2\, \mathrm{d}\tau\ \mathrm{(m^2/s^
     'FontSize', 15, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
 
 xlim([0, t_end]);
-legend({'With resilient factor $\eta_1$ ', ...
-    'Without resilient factor'}, ...
+legend({'With resilient factor $\eta_1$ (${A}_i^{\mathrm{RES}}$)   ', ...
+    'Without resilient factor (${A}_i^{\mathrm{BASE}}$)'}, ...
     'FontSize', 15, 'FontName', 'Times New Roman', 'Interpreter', 'latex', ...
     'Orientation', 'horizontal', ...
     'Location', 'northoutside');
@@ -97,7 +97,7 @@ if ~isfolder(output_dir)
 end
 
 figure(21);
-set(gcf, 'Position', [50, 50, 700, 500]);
+set(gcf, 'Position', [50, 50, 850, 600]);
 set(gcf, 'PaperPositionMode', 'auto');
 pdf_path = fullfile(output_dir, 'Control_Effort_Compare_Total.pdf');
 exportgraphics(gcf, pdf_path, 'Resolution', 600, 'ContentType', 'vector');

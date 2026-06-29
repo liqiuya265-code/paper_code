@@ -179,6 +179,10 @@ for step = 1:length(t)
         Ay_val = A_V(2);
         Az_val = A_V(3);
 
+        % 控制量饱和 (导弹物理极限 ~20g ≈ 200 m/s²)
+        Ay_val = max(min(Ay_val, 200), -200);
+        Az_val = max(min(Az_val, 200), -200);
+
         % 累积控制能量
         J_u = J_u + (Ay_val^2 + Az_val^2) * dt;
 

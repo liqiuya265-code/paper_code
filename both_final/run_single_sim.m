@@ -26,9 +26,9 @@ Z = zeros(n_steps, M);
 % 障碍物对象
 obs = obstacles(d_safe, kappa1, kappa2);
 if use_obstacle
-    obs.add_spherical_obstacle([-500, -3500, 4000], 500);
+    obs.add_cylindrical_obstacle([-3000, -4600, 0], 400, [0, 0, 1]);%([-500, -3500, 4000], 500);
     obs.add_cylindrical_obstacle([-4600, -1800, 0], 500, [0, 0, 1]);
-    obs.add_spherical_obstacle([-2000, -500, 5000], 500);
+    obs.add_cylindrical_obstacle([-3500, -3000, 0], 500, [0, 0, 1]);
     obs.add_cylindrical_obstacle([-2000, -2800, 0], 500, [0, 0, 1]);
 end
 
@@ -138,7 +138,8 @@ for i = 1:length(t)
             weights_log(i, j, :) = [0, 0, 1, 1];
             if j == M
                 x_state = [x_state; x];
-                kappa_observer = T_safe / max(T_safe + cumulative_disconnect_time, 1e-6);
+                %kappa_observer = T_safe / max(T_safe + t(i)-cumulative_disconnect_time, 1e-6);
+                kappa_observer=T / (T - t(i));
                 mu_observer = T / (T - t(i));
                 oe = omega_env_i; ne = n_env;
                 if ~use_obstacle, oe = ones(1, M); ne = 1; end

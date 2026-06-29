@@ -31,14 +31,14 @@ else
 end
 
 % 计算增益项：kappa(t) * mu^(1+m)(t)
-%  if t<T*0.99
-%     gain = kappa_t ^(1 + m1);
-%  else
-%     gain=5;
-%  end
+ if t<T*0.999
+    gain = kappa_t ^(1 + m1);
+ else
+    gain=2;
+ end
 
 
-gain = kappa_t ^(1 + m1);
+%gain = kappa_t ^(1 + m1);
 
 % 对每个导弹计算观测器导数
 for i = 1:M

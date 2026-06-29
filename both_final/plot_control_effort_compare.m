@@ -44,10 +44,10 @@ total_both = sum(cum_per_missile_both, 2);
 t_end = max([t_psi(len_psi), t_phi(len_phi), t_none(len_none), t_both(len_both)]);
 
 % 颜色与线型设置
-psi_color   = [0.00, 0.45, 0.74];   % 蓝色 - psi only
-phi_color   = [0.85, 0.33, 0.10];   % 橙色 - phi only
-none_color  = [0.93, 0.69, 0.13];   % 黄色 - none
-both_color  = [0.49, 0.18, 0.56];   % 紫色 - both
+psi_color   = [0.49, 0.18, 0.56];   % 蓝色 - psi only
+phi_color   = [0.93, 0.69, 0.13];   % 橙色 - phi only
+none_color  = [0.85, 0.33, 0.10];   % 黄色 - none
+both_color  = [0.00, 0.45, 0.74];   % 紫色 - both
 
 style_psi   = '-.';   % 点划线
 style_phi   = ':';    % 点线
@@ -69,14 +69,16 @@ ylabel('$\sum_{i=1}^{4} \int_{0}^{t} \|A_i\|^2\, \mathrm{d}\tau\ \mathrm{(m^2/s^
     'FontSize', 15, 'FontName', 'Times New Roman', 'Interpreter', 'latex');
 
 xlim([0, 43]);
+ylim([0, 2.1e5]);
 grid on;
 
-legend([h1, h2, h3, h4], ...
-    {'With resilient factor $\eta_1$ ', ...
-     'With resilient factor $\eta_2$', ...
-     'Without resilient factor', ...
-     'With resilient factors $\eta_1$ and $\eta_2$'}, ...
-    'FontSize', 15, 'FontName', 'Times New Roman', 'Interpreter', 'latex', ...
+legend([h3,h2,h1,   h4], ...
+    {'Without resilient factor (${ A}_{i}^{(1)}$)', ...
+        'With resilient factor $\eta_2$ (${ A}_{i}^{(3)}$)', ...
+        'With resilient factor $\eta_1$ (${ A}_{i}^{(2)}$)', ...
+     'With resilient factors $\eta_1$ and $\eta_2$ (${ A}_{i}^{(4)}$)'}, ...
+    'FontSize', 12, 'FontName', 'Times New Roman', ...
+    'Interpreter', 'latex', ...
     'Location', 'northoutside', 'NumColumns', 2);
 
 hold off;
@@ -117,7 +119,7 @@ if ~isfolder(output_dir)
 end
 
 figure(21);
-set(gcf, 'Position', [50, 50, 750, 550]);
+set(gcf, 'Position', [50, 50, 850, 600]);
 set(gcf, 'PaperPositionMode', 'auto');
 pdf_path = fullfile(output_dir, 'Control_Effort_4Way_Total.pdf');
 exportgraphics(gcf, pdf_path, 'Resolution', 600, 'ContentType', 'vector');

@@ -22,7 +22,7 @@ Vm_base = [300, 300, 300, 300];
 N = 4;
 M = 4;
 
-sigma_max = 5*pi/180;
+sigma_max = 10*pi/180;
 alpha = 5;
 beta = 5;
 p_param = 0.8;

@@ -29,9 +29,9 @@ end
 
 % 默认方法标签（如果文件中未保存）
 if ~exist('method_labels', 'var') || isempty(method_labels)
-    method_labels = {'Proposed dual-resilient cooperative guidance law (92)', ...
-                     'Guidance law (93a) without dual-resilient weighting', ...
-                     'Guidance law (93a) without the distributed observer'};
+    method_labels = {'Resilient guidance law (89) with \eta_1 and \eta_2', ...
+                     'Guidance law (84) without \eta_1 and \eta_2', ...
+                     'Guidance law (84) without the distributed observer'};
 end
 
 n_methods = length(methods);
@@ -126,7 +126,7 @@ for sp = 1:3
     if sp == 1
         ylim([-2 10]);
     elseif sp == 3
-        ylim([-1e11 1e12]);
+        ylim([-2.5e5 1e6]);
 
     end
 
@@ -175,7 +175,7 @@ for sp = 1:3
         end
         hold(inset_ax, 'off');
         xlim(inset_ax, [0.6 0.9]);
-        ylim(inset_ax, [-2 7]);
+        ylim(inset_ax, [-1 4]);
         set(inset_ax, 'FontName', 'Times New Roman', 'FontSize', 9);
         set(inset_ax, 'XTick', [0.6 0.7 0.8]);
         box(inset_ax, 'on');
@@ -219,37 +219,28 @@ end
 fprintf('\nAll figures exported successfully.\n');
 fprintf('Output directory: %s\n', output_dir);
 
-%% ===== 单独导出 Legend =====
-figure('Position', [100, 420, 800, 90], 'Color', 'w');
+%% ===== 单独导出 Legend (3×1 排列) =====
+figure('Position', [100, 380, 450, 85], 'Color', 'w');
 ax = axes('Position', [0 0 1 1], 'Visible', 'off', 'XLim', [0 1], 'YLim', [0 1]);
 hold on;
 
-rectangle('Position', [0.02, 0.02, 0.96, 0.54], 'FaceColor', 'w', ...
+rectangle('Position', [0.03, 0.06, 0.94, 0.88], 'FaceColor', 'w', ...
     'LineWidth', 0.8);
 
-short_labels = {'Proposed dual-resilient guidance law (92)', ...
-    'Guidance law (93a) without dual-resilient factors', ...
-    'Guidance law (93a) without dual-resilient factors and observers'};
+short_labels = {'Resilient guidance law (89) with \eta_1 and \eta_2', ...
+                'Guidance law (84) without \eta_1 and \eta_2', ...
+                'Guidance law (84) without the distributed observer'};
 
-% 第一排: two columns, y = 0.38
-col_w_2 = 0.88 / 2;
-for midx = 1:2
-    cx = -0.12 + (midx - 0.5) * col_w_2;
-    line([cx-0.05, cx], [0.4, 0.4], 'LineWidth', 2.5, ...
+% 三行均分布局
+row_y = [0.76, 0.48, 0.20];
+for midx = 1:3
+    cx = 0.14;
+    line([cx-0.08, cx], [row_y(midx), row_y(midx)], 'LineWidth', 2.5, ...
         'Color', colors{midx}, 'LineStyle', line_styles{midx});
-    text(cx+0.02, 0.4, short_labels{midx}, ...
+    text(cx+0.03, row_y(midx), short_labels{midx}, ...
         'FontSize', 12, 'FontName', 'Times New Roman', ...
         'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle');
 end
-
-% 第二排: one column centered, y = 0.15
-midx = 3;
-cx = 0.1;
-line([cx-0.05, cx], [0.18, 0.18], 'LineWidth', 2.5, ...
-    'Color', colors{midx}, 'LineStyle', line_styles{midx});
-text(cx+0.02, 0.18, short_labels{midx}, ...
-    'FontSize', 12, 'FontName', 'Times New Roman', ...
-    'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle');
 
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman');
