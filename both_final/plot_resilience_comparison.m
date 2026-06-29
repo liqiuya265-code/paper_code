@@ -6,9 +6,9 @@ clc;clear
 %% ===== 公共参数设置 =====
 tf=100; dt=0.1; t=0:dt:tf;
 Vm=[300,300,300,300]; N=4; M=4;
-sigma_max=10*pi/180;
+sigma_max=13*pi/180;
 alpha=5; beta=5; p=0.8; q=1.2; m=1.5; miu=0.3; v=0.7; n=3; m1=0; varpi=2;
-lambda_info = 0.0008;
+lambda_info = 0.0007;
 
 % 通信拓扑
 a_base=[1,1,0,1;1,1,1,0;0,1,1,1;1,0,1,1];
@@ -24,7 +24,7 @@ x0=[12500,-45*pi/180,45*pi/180,30*pi/180,-30*pi/180,12000,-15*pi/180,30*pi/180,.
 T_safe = 4.6; T = 10;
 
 % 障碍物参数
-d_safe = 50; kappa1 = 1; kappa2 = 1;
+d_safe = 30; kappa1 = 1; kappa2 = 1;
 omega_env_i = 1.75*ones(1, M); n_env = 2;
 use_obstacle_avoidance = true;
 
@@ -64,7 +64,7 @@ len_all = min(cellfun(@(c) c.len, results));
 % 障碍物对象（用于 3D 绘图）
 obs_plot = obstacles(d_safe, kappa1, kappa2);
 obs_plot.add_spherical_obstacle([-3000, -4600, 4000], 500);
-obs_plot.add_cylindrical_obstacle([-4600, -1800, 0], 500, [0, 0, 1]);
+obs_plot.add_cylindrical_obstacle([-4500, -1800, 0], 500, [0, 0, 1]);
 obs_plot.add_spherical_obstacle([-3500, -3000, 7500], 500);
 obs_plot.add_cylindrical_obstacle([-2000, -2800, 0], 500, [0, 0, 1]);
 
@@ -91,14 +91,18 @@ grid on; view(135, 20);
 % 障碍物信息（与 obs_plot 一致）
 obs_info = {
     struct('type','sphere',  'center',[-3000, -4600, 4000], 'R',500, 'title','Obs 1 (sphere)'), ...
-    struct('type','cylinder','center',[-4600, -1800, 0],    'R',500, 'title','Obs 2 (cylinder)'), ...
+    struct('type','cylinder','center',[-4500, -1800, 0],    'R',500, 'title','Obs 2 (cylinder)'), ...
     struct('type','sphere',  'center',[-3500, -3000, 7500], 'R',500, 'title','Obs 3 (sphere)'), ...
     struct('type','cylinder','center',[-2000, -2800, 0],    'R',500, 'title','Obs 4 (cylinder)')
 };
-inset_pos = {[0.05 0.55 0.22 0.40], [0.73 0.55 0.22 0.40], ...
-             [0.05 0.08 0.22 0.40], [0.73 0.08 0.22 0.40]};
+inset_pos = {[0.2 0.58 0.18 0.18], [0.7 0.58 0.18 0.18], ...
+             [0.2 0.25 0.18 0.18], [0.7 0.25 0.18 0.18]};
+inset_axes = gobjects(1, 4);
+zone_labels = gobjects(1, 4);
+inset_tick_font_size = 12;
+zone_label_font_size = 12;
 view_range = 2000;  % 局部放大范围 ±2000m
-
+z_view_pad = 3000;
 for oi = 1:4
     p_o = obs_info{oi}.center;
     R = obs_info{oi}.R;
@@ -126,6 +130,7 @@ for oi = 1:4
     end
 
     inset_ax = axes('Position', inset_pos{oi});
+    inset_axes(oi) = inset_ax;
     hold(inset_ax, 'on');
 
     % 导弹 3D 轨迹（局部，三模式用各自线型）
@@ -161,19 +166,30 @@ for oi = 1:4
     xlim(inset_ax, p_o(1) + [-view_range, view_range]);
     ylim(inset_ax, p_o(2) + [-view_range, view_range]);
     if is_cylinder && ~isempty(z_all)
-        z_pad = 200;
+        z_pad = z_view_pad;
         zlim(inset_ax, [min(z_all)-z_pad, max(z_all)+z_pad]);
     else
-        zlim(inset_ax, p_o(3) + [-view_range, view_range]);
+        zlim(inset_ax, p_o(3) + [-view_range-z_view_pad, view_range+z_view_pad]);
     end
     view(inset_ax, 0, 90);  % 俯视图
     set(inset_ax, 'XDir', 'reverse', 'YDir', 'reverse');
-    set(inset_ax, 'FontName', 'Times New Roman', 'FontSize', 12);
+    set(inset_ax, 'FontName', 'Times New Roman', 'FontSize', inset_tick_font_size);
     box(inset_ax, 'on');
+
+    label_pos = [inset_pos{oi}(1)+0.006, inset_pos{oi}(2)+inset_pos{oi}(4)-0.04, 0.08, 0.035];
+    zone_labels(oi) = annotation(gcf, 'textbox', label_pos, ...
+        'String', sprintf('Zone %d', oi), ...
+        'FitBoxToText', 'on', 'LineStyle', 'none', ...
+        'BackgroundColor', 'none', 'Margin', 1, ...
+        'FontName', 'Times New Roman', 'FontSize', zone_label_font_size, ...
+        'FontWeight', 'bold');
 end
 
 all_txt = findall(gcf, '-property', 'FontName');
 set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);
+set(inset_axes, 'FontName', 'Times New Roman', 'FontSize', inset_tick_font_size);
+set(zone_labels, 'FontName', 'Times New Roman', 'FontSize', zone_label_font_size, ...
+    'FontWeight', 'bold');
 
 %% ===== 图2：tgo 和距离 r（2×1 子图，每张12条曲线）=====
 figure(2)
@@ -361,13 +377,66 @@ for mi = 1:n_modes
 end
 set(findall(gcf, '-property', 'FontName'), 'FontName', 'Times New Roman');
 
+%% ===== Figure 8: Observer error, With eta_1 and eta_2 only =====
+r_obs = results{1};
+x_state_obs = r_obs.x_state;
+z_observer_log_obs = r_obs.z_observer_log;
+len_obs_err = min([r_obs.len, size(x_state_obs, 1), size(z_observer_log_obs, 1)]);
+t_plot_obs = t(1:len_obs_err);
+
+figure(8)
+set(gcf, 'Position', [100, 50, 800, 600]);
+roman_labels = {'i', 'ii', 'iii', 'iv'};
+for i_obs = 1:M
+    subplot(4, 1, i_obs)
+    hold on;
+    for j_target = 1:M
+        if i_obs ~= j_target
+            err_obs_vec = zeros(len_obs_err, 1);
+            for k = 1:len_obs_err
+                e_o = zeros(5, 1);
+                for state_idx = 1:5
+                    real_state_idx = 5*(j_target-1) + state_idx;
+                    obs_idx = M*5*(i_obs-1) + 5*(j_target-1) + state_idx;
+                    e_o(state_idx) = z_observer_log_obs(k, obs_idx) - x_state_obs(k, real_state_idx);
+                end
+                err_obs_vec(k) = norm(e_o);
+            end
+            plot(t_plot_obs, err_obs_vec, '-', 'LineWidth', 2, ...
+                'Color', colors(j_target,:), ...
+                'DisplayName', ['to Missile ', num2str(j_target)]);
+        end
+    end
+    if i_obs == M
+        xlabel('t(s)')
+        xline(T, '--', 'T=10s', 'Color', [0.5 0.5 0.5], ...
+            'LineWidth', 1.5, 'LabelVerticalAlignment', 'bottom', ...
+            'LabelOrientation', 'horizontal', 'HandleVisibility', 'off');
+    else
+        xline(T, '--', 'Color', [0.5 0.5 0.5], ...
+            'LineWidth', 1.5, 'HandleVisibility', 'off');
+    end
+    ylabel('||e_{state}||_2')
+    text(0.5, 0.8, ['(', roman_labels{i_obs}, ') Missile ', ...
+        num2str(i_obs), ' State Error Norm'], ...
+        'Units', 'normalized', 'HorizontalAlignment', 'center', ...
+        'FontSize', 12, 'FontName', 'Times New Roman', 'Clipping', 'off');
+    legend('Location', 'best')
+    grid on;
+    hold off;
+end
+
+all_txt = findall(gcf, '-property', 'FontName');
+set(all_txt, 'FontName', 'Times New Roman', 'FontSize', 18);
+set(findall(gcf, 'Type', 'Legend'), 'FontSize', 12);
+
 %% ===== 导出 PDF =====
 output_dir = fileparts(mfilename('fullpath'));
 if isempty(output_dir), output_dir = pwd; end
 
 fig_names = {'trajectory', 'tgo_range', 'acceleration', 'sigma', ...
-             'weights', 'control_effort', 'legend'};
-for fnum = 1:7
+             'weights', 'control_effort', 'legend', 'observer_error'};
+for fnum = 1:8
     fname = fullfile(output_dir, sprintf('resilience_%s.pdf', fig_names{fnum}));
     figure(fnum);
     exportgraphics(gcf, fname, 'Resolution', 600, 'ContentType', 'vector', 'BackgroundColor', 'white');

@@ -220,7 +220,7 @@ fprintf('\nAll figures exported successfully.\n');
 fprintf('Output directory: %s\n', output_dir);
 
 %% ===== 单独导出 Legend (3×1 排列) =====
-figure('Position', [100, 380, 450, 85], 'Color', 'w');
+figure('Position', [100, 380, 450, 80], 'Color', 'w');
 ax = axes('Position', [0 0 1 1], 'Visible', 'off', 'XLim', [0 1], 'YLim', [0 1]);
 hold on;
 

@@ -26,8 +26,8 @@ Z = zeros(n_steps, M);
 % 障碍物对象
 obs = obstacles(d_safe, kappa1, kappa2);
 if use_obstacle
-    obs.add_cylindrical_obstacle([-3000, -4600, 0], 400, [0, 0, 1]);%([-500, -3500, 4000], 500);
-    obs.add_cylindrical_obstacle([-4600, -1800, 0], 500, [0, 0, 1]);
+    obs.add_cylindrical_obstacle([-3000, -4600, 0], 500, [0, 0, 1]);
+    obs.add_cylindrical_obstacle([-4500, -1800, 0], 500, [0, 0, 1]);
     obs.add_cylindrical_obstacle([-3500, -3000, 0], 500, [0, 0, 1]);
     obs.add_cylindrical_obstacle([-2000, -2800, 0], 500, [0, 0, 1]);
 end
@@ -63,6 +63,7 @@ last_psi_i_obs = cell(length(t), 1);
 
 sim_len = length(t);
 break_flag = false;
+hit_flags = false(1, M);
 
 for i = 1:length(t)
     a_now = squeeze(a_log(i,:,:));
@@ -130,6 +131,7 @@ for i = 1:length(t)
     for j = 1:M
         % 已命中导弹：跳过控制计算和 RK4，冻结状态
         if x(5*(j-1)+1) <= 5
+            hit_flags(j) = true;
             X_row(j) = -x(5*(j-1)+1) * cos(x(5*(j-1)+2)) * cos(x(5*(j-1)+3));
             Y_row(j) = -x(5*(j-1)+1) * cos(x(5*(j-1)+2)) * sin(x(5*(j-1)+3));
             Z_row(j) = -x(5*(j-1)+1) * sin(x(5*(j-1)+2));
@@ -239,6 +241,9 @@ for i = 1:length(t)
         Az_row(j) = A_V(3);
 
         x(5*(j-1)+1:5*(j-1)+5) = RK4(i, x(5*(j-1)+1:5*(j-1)+5)', Ay_row(j), Az_row(j), dt, Vm(j));
+        if x(5*(j-1)+1) <= 5
+            hit_flags(j) = true;
+        end
 
         X_row(j) = -x(5*(j-1)+1) * cos(x(5*(j-1)+2)) * cos(x(5*(j-1)+3));
         Y_row(j) = -x(5*(j-1)+1) * cos(x(5*(j-1)+2)) * sin(x(5*(j-1)+3));
@@ -286,7 +291,7 @@ for i = 1:length(t)
     end  % for j = 1:M
 
     % 检查是否所有导弹都已命中
-    all_hit = all(x(1:5:5*M) <= 5);
+    all_hit = all(hit_flags);
     if all_hit
         sim_len = i;
         break_flag = true;

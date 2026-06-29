@@ -9,17 +9,23 @@ sigma_max=15*pi/180;
 alpha=5; beta=5; p=0.8; q=1.2; m=1.5; miu=0.3; v=0.7; n=2; m1=0; varpi=2;
 
 % 障碍物参数（与 plot_obstacle_comparison.m 保持一致）
-d_safe = 100; kappa1 = 1; kappa2 = 1;
-omega_env_i = 2 * ones(1, M);  % 动态 ω，首次触发避障时更新
+d_safe = 50; kappa1 = 1; kappa2 = 1;
+omega_env_i = 1.5 * ones(1, M);  % 动态 ω，首次触发避障时更新
 omega_captured = false(1, M);
 n_env = 2;
 lambda_info = 0.001;
 
-obs = obstacles(d_safe, kappa1, kappa2);
-obs.add_spherical_obstacle([-500, -3500, 4000], 500);
-obs.add_cylindrical_obstacle([-4500, -1800, 0], 500, [0, 0, 1]);
-obs.add_spherical_obstacle([-2000, -500, 4500], 500);
-obs.add_cylindrical_obstacle([-2000, -3000, 0], 500, [0, 0, 1]);
+obs_avoid = obstacles(d_safe, kappa1, kappa2);
+obs_avoid.add_cylindrical_obstacle([-3000, -4500, 0], 500, [0, 0, 1]);
+obs_avoid.add_cylindrical_obstacle([-4500, -1800, 0], 500, [0, 0, 1]);
+obs_avoid.add_cylindrical_obstacle([-3500, -3000, 0], 500, [0, 0, 1]);
+obs_avoid.add_cylindrical_obstacle([-2000, -2800, 0], 500, [0, 0, 1]);
+
+obs_plot = obstacles(d_safe, kappa1, kappa2);
+obs_plot.add_spherical_obstacle([-3000, -4600, 4000], 500);
+obs_plot.add_cylindrical_obstacle([-4500, -1800, 0], 500, [0, 0, 1]);
+obs_plot.add_spherical_obstacle([-3500, -3000, 7500], 500);
+obs_plot.add_cylindrical_obstacle([-2000, -2800, 0], 500, [0, 0, 1]);
 
 % 通信拓扑与 DoS 参数
 a_base=[1,1,0,1;1,1,1,0;0,1,1,1;1,0,1,1];
@@ -33,8 +39,8 @@ t0=0; rng(1);
 
 load('dos_scenario.mat', 'a_log', 'dos_downtime_log', 'dos_active_log', 'dos_event_count_log');
 
-x=[12500,-30*pi/180,50*pi/180,45*pi/180,-30*pi/180,12000,-15*pi/180,30*pi/180,...
-    30*pi/180,30*pi/180,11000,-30*pi/180,30*pi/180,30*pi/180,15*pi/180,11500,-30*pi/180,50*pi/180,45*pi/180,-30*pi/180];
+x=[12500,-45*pi/180,45*pi/180,30*pi/180,-30*pi/180,12000,-15*pi/180,30*pi/180,...
+    30*pi/180,30*pi/180,11000,-45*pi/180,45*pi/180,30*pi/180,15*pi/180,11500,-30*pi/180,45*pi/180,30*pi/180,-30*pi/180];
 
 T_safe = 5; T = 10;
 cumulative_disconnect_time = 0;
@@ -50,6 +56,7 @@ X = zeros(n_steps, M); Y = zeros(n_steps, M); Z = zeros(n_steps, M);
 Ay = zeros(n_steps, M); Az = zeros(n_steps, M);
 tgo = zeros(n_steps, M); sigma = zeros(n_steps, M);
 sim_len = n_steps; break_flag = false;
+hit_flags = false(1, M);
 
 for i = 1:length(t)
     a_now = squeeze(a_log(i,:,:));
@@ -102,6 +109,7 @@ for i = 1:length(t)
     for j = 1:M
         % 已命中导弹：冻结状态
         if x(5*(j-1)+1) <= 5
+            hit_flags(j) = true;
             X_row(j) = -x(5*(j-1)+1)*cos(x(5*(j-1)+2))*cos(x(5*(j-1)+3));
             Y_row(j) = -x(5*(j-1)+1)*cos(x(5*(j-1)+2))*sin(x(5*(j-1)+3));
             Z_row(j) = -x(5*(j-1)+1)*sin(x(5*(j-1)+2));
@@ -123,7 +131,7 @@ for i = 1:length(t)
         v_i = R_LtoI * R_VtoL * [Vm(j);0;0];
 
         % 环境安全因子（避障）
-        [phi_i, r_ratio] = environmental_safety_factor(obs, p_i, omega_env_i(j), n_env);
+        [phi_i, r_ratio] = environmental_safety_factor(obs_avoid, p_i, omega_env_i(j), n_env);
         % 简化 psi：基于网络连通性（无观测器）
         has_connections = false;
         for k = 1:M
@@ -143,7 +151,7 @@ for i = 1:length(t)
         a_N = R_LtoI * R_VtoL * [0; Ay_png; Az_png];
 
         % CBF 避障
-        [avoidance_force, obstacle_detected] = obs.compute_obstacle_avoidance(p_i', v_i, a_N);
+        [avoidance_force, obstacle_detected] = obs_avoid.compute_obstacle_avoidance(p_i', v_i, a_N);
         F_i = double(obstacle_detected);
         % 首次触发避障时捕获 ω = r_actual / R
         if F_i == 1 && ~omega_captured(j)
@@ -161,6 +169,9 @@ for i = 1:length(t)
         Az_row(j) = A_V(3);
 
         x(5*(j-1)+1:5*(j-1)+5) = RK4(i, x(5*(j-1)+1:5*(j-1)+5)', Ay_row(j), Az_row(j), dt, Vm(j));
+        if x(5*(j-1)+1) <= 5
+            hit_flags(j) = true;
+        end
 
         X_row(j) = -x(5*(j-1)+1)*cos(x(5*(j-1)+2))*cos(x(5*(j-1)+3));
         Y_row(j) = -x(5*(j-1)+1)*cos(x(5*(j-1)+2))*sin(x(5*(j-1)+3));
@@ -172,7 +183,7 @@ for i = 1:length(t)
     end  % for j
 
     % 全部命中才终止
-    all_hit = all(x(1:5:5*M) <= 5);
+    all_hit = all(hit_flags);
     if all_hit, sim_len = i; break_flag = true; end
 
     tgo(i,:) = tgo_vec; sigma(i,:) = sigma_vec;
@@ -205,7 +216,7 @@ for j = 1:M
 end
 set(gca, 'XDir', 'reverse', 'YDir', 'reverse');
 plot3(0,0,0,'ko','MarkerSize',10,'LineWidth',2); text(0,0,0,' Target','FontSize',15);
-obs.plot_obstacles();
+obs_plot.plot_obstacles();
 xlabel('X (m)'); ylabel('Y (m)'); zlabel('Z (m)');
 grid on; view(135, 20); 
 set(findall(gcf,'-property','FontName'),'FontName','Times New Roman','FontSize',18);
